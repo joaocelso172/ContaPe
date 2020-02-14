@@ -117,4 +117,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:srcCompat="@drawable/googleg_standard_color_18" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rTarefas"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="24dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnEnviarTarefa"
+        tools:visibility="visible" />
 </androidx.constraintlayout.widget.ConstraintLayout>

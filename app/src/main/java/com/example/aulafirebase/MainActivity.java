@@ -2,6 +2,9 @@ package com.example.aulafirebase;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,10 +15,12 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.example.aulafirebase.Adapter.TarefasAdapter;
 import com.example.aulafirebase.DAL.TarefasDAO;
 import com.example.aulafirebase.DAL.UsuarioDAO;
 import com.example.aulafirebase.Model.Tarefa;
@@ -28,16 +33,24 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.example.aulafirebase.LoginGoogle.GOOGLE_SIGN;
+import static com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig.ConfigurarRecycler;
 
 public class MainActivity extends AppCompatActivity {
 
   //  private DatabaseReference refenciaDb = FirebaseDatabase.getInstance().getReference();
   //  private String nomeUsuario, tipoUsuario;
 
+    //Variavel referente a lista Recycler de Tarefas
+    private RecyclerView recyclerTarefas;
+    //Variavel referente a lista de tarefas que alimentará o recycler
+    private List<Tarefa> listaTarefas = new ArrayList<>();
+    //Variavel que recupera um objeto TarefaAdapter
+    private TarefasAdapter tarefasAdapter = new TarefasAdapter(listaTarefas, this);
     //Variavel de autentificacao para puxar usuário logado e deslogar
     private FirebaseAuth mAuth;
     //Variavel que vai receber o usuário, mUser = mAuth.getCurrentUser();
@@ -57,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText edNome, edDesc, edPrioridade, edAssociado;
     private Spinner spinNomes;
     private ProgressBar progressAuth;
-    String[] nomeUsuarios = new String[]{"João", "Teste 01", "Teste 02"};
+    private String[] nomeUsuarios = new String[]{"João", "Teste 01", "Teste 02"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         spinNomes = findViewById(R.id.spinnerNomes);
         progressAuth = findViewById(R.id.progressAuth);
         imgPerfil = findViewById(R.id.imgDeslogar);
+        recyclerTarefas = findViewById(R.id.rTarefas);
 
             //preenchendo usuário, opcional, pode utilizar-se as props do próprio FirebaseAuth
             mUser = mAuth.getInstance().getCurrentUser();
@@ -84,9 +98,31 @@ public class MainActivity extends AppCompatActivity {
             } //Se já está logado, verifica se está cadastrado, caso nao esteja, efetua cadastro
             else {
                 usuarioDAO.cadastrarUsuario();
-                tarefasDAO.buscarTarefa();
+               // if (tarefasDAO.buscarTarefa()){
+                //    listaTarefas = tarefasDAO.listarTarefas(tarefasAdapter);
+
+                    //retornarRecyclerTarefas();
+
+                /*    Tarefa tarefa1 = new Tarefa("Pinto", "MUITO CURTO");
+                    Tarefa tarefa2 = new Tarefa("CARALHO Q ODIO", "PUTA Q PARIU VAI SE FODER");
+                    Tarefa tarefa3 = new Tarefa("CARALHO Q ODIO", "PUTA Q PARIU VAI SE FODER");
+                    Tarefa tarefa4 = new Tarefa("CARALHO Q ODIO", "PUTA Q PARIU VAI SE FODER");
+
+                    listaTarefas.add(tarefa1);
+                    listaTarefas.add(tarefa2);
+                    listaTarefas.add(tarefa3);
+                    listaTarefas.add(tarefa4);
+
+                    ConfigurarRecycler(getApplicationContext(), recyclerTarefas, listaTarefas, tarefasAdapter);*/
+
+
+              //  }
+
             }
 
+
+
+    //    retornarRecyclerTarefas();
         
         ArrayAdapter <String> arrayAdapter = new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, nomeUsuarios);
         arrayAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
@@ -119,24 +155,48 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    public void retornarRecyclerTarefas(){
+
+
+       tarefasDAO.listarTarefas(listaTarefas, tarefasAdapter);
+
+        Handler handler = new Handler();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+
+                if (listaTarefas.size() > 0) {
+
+                    Log.i("Tarefa", "Lista iniciada, " + listaTarefas.get(0).getDescTarefa());
+                    ConfigurarRecycler(getApplicationContext(), recyclerTarefas, listaTarefas, tarefasAdapter);
+
+                    edNome.setText(listaTarefas.get(2).getDescTarefa());
+                    tarefasAdapter.notifyDataSetChanged();
+                    handler.removeCallbacks(this);
+                } else {
+                    Log.i("Tarefa", "Lista vazia");
+                    handler.postDelayed(this, 3000);
+                }
+            }
+        });
+
+
+    }
+
     public void gravarFirebase(){
 
-        Tarefa tarefaObj = new Tarefa();
-
-        if (!spinNomes.getSelectedItem().toString().equals("") || !edDesc.getText().toString().equals("") || !edAssociado.getText().toString().equals("")
-                || !edPrioridade.getText().toString().equals("")) {
+        if (!edDesc.getText().toString().equals("")
+                || !edDesc.getText().toString().equals("")) {
 
             try {
-                tarefaObj.setNomeTarefa(spinNomes.getSelectedItem().toString());
-                tarefaObj.setDescTarefa(edDesc.getText().toString());
 
+                tarefasDAO.salvarTarefa(edNome.getText().toString(), edDesc.getText().toString());
                /* DatabaseReference tarefasAdd = refenciaDb.child("usuarios").child(tipoUsuario).child(tarefaObj.getPessoaAtribuida()).child(tarefaObj.getNomeTarefa());
                 tarefasAdd.child("desc da Tarefa").setValue(tarefaObj.getDescTarefa());
                 tarefasAdd.child("pessoa Atribuida").setValue(tarefaObj.getPessoaAtribuida());
                 tarefasAdd.child("prioridade da tarefa").setValue(tarefaObj.getPrioridadeTarefa());*/
-
-
-
                 Toast.makeText(this, "Dados gravados com sucesso!", Toast.LENGTH_LONG).show();
             }catch (Exception e){
                 Toast.makeText(this, "Houve um erro ao tentar gravar: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -185,18 +245,18 @@ public class MainActivity extends AppCompatActivity {
 
                             if (mUser != null) {
 
-                                if (usuarioDAO.cadastrarUsuario()) {
-                                    handler.removeCallbacks(this);
-                                    progressAuth.setVisibility(View.GONE);
-                                    Toast.makeText(MainActivity.this, "Logado com sucesso!", Toast.LENGTH_SHORT).show();
-                                    Log.i("Logando", mUser.getEmail());
-                                } else{
-                                    i++;
-                                    if (i >= 5) {
+                                    if (usuarioDAO.cadastrarUsuario()) {
                                         handler.removeCallbacks(this);
-                                        Toast.makeText(MainActivity.this, "Houve uma falha durante o login. Reinicie o aplicativo.", Toast.LENGTH_SHORT).show();
-                                        finish();
-                                    }
+                                        progressAuth.setVisibility(View.GONE);
+                                        Toast.makeText(MainActivity.this, "Logado com sucesso!", Toast.LENGTH_SHORT).show();
+                                        Log.i("Logando", mUser.getEmail());
+                                    } else {
+                                        i++;
+                                        if (i >= 5) {
+                                            handler.removeCallbacks(this);
+                                            Toast.makeText(MainActivity.this, "Houve uma falha durante o login. Reinicie o aplicativo.", Toast.LENGTH_SHORT).show();
+                                            finish();
+                                        }
                                     }
 
                             }else {Log.i("Logando", "Usuário null " + i);}
@@ -217,5 +277,12 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
-    
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+       // ConfigurarRecycler(getApplicationContext(), recyclerTarefas, listaTarefas, tarefasAdapter);
+    }
+
+
 }

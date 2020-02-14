@@ -5,6 +5,17 @@ import com.google.firebase.database.Exclude;
 public class Usuario {
 
     private String email, nome, idUsuario;
+    private boolean isCadastrado;
+
+
+    @Exclude
+    public boolean isCadastrado() {
+        return isCadastrado;
+    }
+
+    public void setCadastrado(boolean cadastrado) {
+        isCadastrado = cadastrado;
+    }
 
     public Usuario(){
 

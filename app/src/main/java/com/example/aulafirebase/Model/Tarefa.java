@@ -3,17 +3,15 @@ package com.example.aulafirebase.Model;
 public class Tarefa {
 
     private String nomeTarefa, descTarefa;
-    private int valorTarefa;
 
 
     public Tarefa(){
 
     }
 
-    public Tarefa(String nomeTarefa, String descTarefa, int valorTarefa) {
+    public Tarefa(String nomeTarefa, String descTarefa) {
         this.nomeTarefa = nomeTarefa;
         this.descTarefa = descTarefa;
-        this.valorTarefa = valorTarefa;
     }
 
     public String getNomeTarefa() {
@@ -32,11 +30,4 @@ public class Tarefa {
         this.descTarefa = descTarefa;
     }
 
-    public int getValorTarefa() {
-        return valorTarefa;
-    }
-
-    public void setValorTarefa(int valorTarefa) {
-        this.valorTarefa = valorTarefa;
-    }
 }
