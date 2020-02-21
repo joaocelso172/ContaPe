@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">AulaFirebase</string>
+    <string name="title_activity_tarefas_acitivity">TarefasAcitivity</string>
+    <string name="title_activity_tarefa">TarefaActivity</string>
+    <string name="title_activity_add_movimentacao">AddMovimentacaoActivity</string>
+    <string name="title_activity_add_despesa">AddDespesaActivity</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
 </resources>

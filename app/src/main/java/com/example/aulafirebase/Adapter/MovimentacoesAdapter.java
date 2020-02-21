@@ -9,19 +9,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.aulafirebase.Model.Tarefa;
+import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.R;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class TarefasAdapter extends RecyclerView.Adapter<TarefasAdapter.MyViewHolder> {
+public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdapter.MyViewHolder> {
 
-    List<Tarefa> listaTarefas;
+    List<Movimentacao> listaMovimentacaos;
     Context context;
 
-    public TarefasAdapter(List<Tarefa> listaTarefas, Context context) {
-        this.listaTarefas = listaTarefas;
+    public MovimentacoesAdapter(List<Movimentacao> listaMovimentacaos, Context context) {
+        this.listaMovimentacaos = listaMovimentacaos;
         this.context = context;
     }
 
@@ -37,9 +36,9 @@ public class TarefasAdapter extends RecyclerView.Adapter<TarefasAdapter.MyViewHo
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
 
-        Tarefa tarefa = listaTarefas.get(position);
-        holder.txtNomeTarefa.setText(tarefa.getNomeTarefa());
-        holder.txtDescTarefa.setText(tarefa.getDescTarefa());
+        Movimentacao movimentacao = listaMovimentacaos.get(position);
+        holder.txtNomeTarefa.setText(movimentacao.getNomeTarefa());
+        holder.txtDescTarefa.setText(movimentacao.getDescTarefa());
 
         holder.txtNomeTarefa.setTextColor(context.getResources().getColor(R.color.colorAccent));
         holder.txtDescTarefa.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
@@ -49,7 +48,7 @@ public class TarefasAdapter extends RecyclerView.Adapter<TarefasAdapter.MyViewHo
 
     @Override
     public int getItemCount() {
-        return listaTarefas.size();
+        return listaMovimentacaos.size();
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {

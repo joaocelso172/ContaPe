@@ -1,5 +1,6 @@
 package com.example.aulafirebase.DAL;
 
+import android.renderscript.Sampler;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -22,18 +23,19 @@ import com.google.firebase.database.ValueEventListener;
 public class UsuarioDAO {
 
     private boolean isSucess = false;
-    private boolean usuarioExistente = false;
 
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
+    private DatabaseReference usuarioQuery;
+
     //Referencia ao BD configurado no json
     private DatabaseReference refenciaDb = FirebaseDatabase.getInstance().getReference();
-
     //Referencia ao branch de usuarios feito baseada numa referencia geral já existente
     private DatabaseReference usuarios = refenciaDb.child("usuarios");
+    //EventListener deve ser sempre fechado
+    private ValueEventListener valueEventListener;
 
-
-
+    private ValueEventListener outroValeu;
 
 
     public boolean cadastrarUsuario(){
@@ -42,7 +44,7 @@ public class UsuarioDAO {
         //usuarios.push().setValue(usuario);
 
         // DatabaseReference usuarioPesquisa = usuariosAdd.child("-M-_OrEEiB4V42YjNQ_k");
-        Query usuarioQuery = usuarios.child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail()));
+        usuarioQuery = usuarios.child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail()));
 
         /*
         //Ordena resultado de acordo com itens no BD
@@ -66,14 +68,16 @@ public class UsuarioDAO {
        */
 
 
-        usuarioQuery.addValueEventListener(new ValueEventListener() {
+        outroValeu = usuarioQuery.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-               //   Usuario usuario = dataSnapshot.getValue(Usuario.class);
+
                //   Log.i("Logando", usuario.getNome());
 
                 if (dataSnapshot.getValue() != null) {
                     Log.i("Logando", dataSnapshot.getValue().toString());
+                    Usuario usuario = dataSnapshot.getValue(Usuario.class);
+                    Log.i("Logando", String.valueOf(usuario.getSaldoDisponivel()));
                     isSucess = true;
                     
                 }else {
@@ -110,6 +114,7 @@ public class UsuarioDAO {
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()){
                         Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario));
+                        //removerEventListener();
                     }
                 }
             });
@@ -130,9 +135,9 @@ public class UsuarioDAO {
         Usuario usuario = new Usuario();
 
         // DatabaseReference usuarioPesquisa = usuariosAdd.child("-M-_OrEEiB4V42YjNQ_k");
-        Query usuarioQuery = usuarios.child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail()));
+        usuarioQuery = usuarios.child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail()));
 
-        usuarioQuery.addValueEventListener(new ValueEventListener() {
+        valueEventListener = usuarioQuery.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
@@ -162,6 +167,7 @@ public class UsuarioDAO {
             }
         });
 
+
         return usuario;
     }
 
@@ -176,6 +182,7 @@ public class UsuarioDAO {
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()){
                         Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario) + ", " + usuario.getNome());
+                        //removerEventListener();
                     }
                 }
             });
@@ -186,6 +193,12 @@ public class UsuarioDAO {
             Log.i("Logando", e.getMessage());
             isSucess = false;
         }
+
+    }
+
+    public void removerEventListener(){
+        usuarioQuery.removeEventListener(outroValeu);
+        usuarioQuery.removeEventListener(valueEventListener);
 
     }
 

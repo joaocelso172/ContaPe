@@ -4,9 +4,45 @@ import com.google.firebase.database.Exclude;
 
 public class Usuario {
 
-    private String email, nome, idUsuario;
+    private String email, nome = "Sem nome";
     private boolean isCadastrado;
+    private Double despesaTotal = 0.00;
+    private Double receitaTotal = 0.00;
+    private Double saldoDisponivel = 0.00;
+    //Definirá o valor que alertará o usuario
+    private Double valorAlerta = 200.00;
 
+    public Double getValorAlerta() {
+        return valorAlerta;
+    }
+
+    public void setValorAlerta(Double valorAlerta) {
+        this.valorAlerta = valorAlerta;
+    }
+
+    public double getDespesaTotal() {
+        return despesaTotal;
+    }
+
+    public void setDespesaTotal(Double despesaTotal) {
+        this.despesaTotal = despesaTotal;
+    }
+
+    public double getReceitaTotal() {
+        return receitaTotal;
+    }
+
+    public void setReceitaTotal(Double receitaTotal) {
+        this.receitaTotal = receitaTotal;
+    }
+
+    public double getSaldoDisponivel() {
+        return saldoDisponivel;
+    }
+
+    public void setSaldoDisponivel(Double saldoDisponivel) {
+        this.saldoDisponivel = saldoDisponivel;
+    }
 
     @Exclude
     public boolean isCadastrado() {
@@ -23,15 +59,6 @@ public class Usuario {
 
     public String getNome() {
         return nome;
-    }
-
-    @Exclude
-    public String getIdUsuario() {
-        return idUsuario;
-    }
-
-    public void setIdUsuario(String idUsuario) {
-        this.idUsuario = idUsuario;
     }
 
     public void setNome(String nome) {

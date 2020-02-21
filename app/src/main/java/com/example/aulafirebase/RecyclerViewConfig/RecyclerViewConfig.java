@@ -7,8 +7,8 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.aulafirebase.Adapter.TarefasAdapter;
-import com.example.aulafirebase.Model.Tarefa;
+import com.example.aulafirebase.Adapter.MovimentacoesAdapter;
+import com.example.aulafirebase.Model.Movimentacao;
 
 import java.util.List;
 
@@ -16,14 +16,14 @@ public class RecyclerViewConfig {
 
 
 
-    public static void ConfigurarRecycler(Context c,RecyclerView recyclerView, List<Tarefa> listaTarefas, TarefasAdapter tarefasAdapter) {
+    public static void ConfigurarRecycler(Context c, RecyclerView recyclerView, List<Movimentacao> listaMovimentacaos, MovimentacoesAdapter movimentacoesAdapter) {
 
 
         //Passando uma variavel recyclerView para retorno
     //    RecyclerView recyclerView = null;
 
         //Configurando adapter
-        //TarefasAdapter tarefasAdapter = new TarefasAdapter(listaTarefas);
+        //MovimentacoesAdapter movimentacoesAdapter = new MovimentacoesAdapter(listaMovimentacaos);
 
         //Configurando Recycler
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(c);
@@ -32,7 +32,7 @@ public class RecyclerViewConfig {
         recyclerView.addItemDecoration(new DividerItemDecoration(c, LinearLayout.VERTICAL));
 
         //Setando adapter
-        recyclerView.setAdapter(tarefasAdapter);
+        recyclerView.setAdapter(movimentacoesAdapter);
 
        // return recyclerView;
     }

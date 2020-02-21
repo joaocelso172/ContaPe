@@ -67,10 +67,14 @@ public class LoginGoogle extends AppCompatActivity {
     }*/
 
 
-     void firebaseAuthAuthWithGoogle(GoogleSignInAccount conta) {
+     public void firebaseAuthAuthWithGoogle(GoogleSignInAccount conta) {
+
+
        //  Log.i("Logando", "firebase: " + conta.getId());
          AuthCredential credencial = GoogleAuthProvider
                 .getCredential(conta.getIdToken(), null);
+
+
         mAuth.signInWithCredential(credencial)
                 .addOnCompleteListener(this, task ->{
                     if (task.isSuccessful()){
@@ -84,9 +88,10 @@ public class LoginGoogle extends AppCompatActivity {
                        // updateUI(user);
                     }else Log.i("Logando", "Falha no Login");
                 });
+
     }
 
-     void updateUI(FirebaseUser usuario) {
+     public void updateUI(FirebaseUser usuario) {
 
         if (usuario != null){
 

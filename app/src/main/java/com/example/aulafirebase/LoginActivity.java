@@ -11,16 +11,20 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.example.aulafirebase.DAL.FirebaseConfig;
+import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.UsuarioDAO;
+import com.example.aulafirebase.DAL.UsuariosDAO;
 import com.example.aulafirebase.Model.Usuario;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -38,52 +42,67 @@ public class LoginActivity extends AppCompatActivity {
     //Variavel da classe que puxaremos os objetos
     private LoginGoogle loginGoogle;
     //Variavel que dá origem ao objeto que controlará o CRUD de dados no BD referente a usuários
-    private UsuarioDAO usuarioDAO = new UsuarioDAO();
+    private UsuariosDAO usuariosDAO = new UsuariosDAO();
     //Variavel de usuário
     private Usuario usuario = new Usuario();
     //Variavel responsável por abrir o dialogo para o usuário colocar o nome
     private Dialog dialogNome;
     //Variavel que receberá o nome do usuário caso abra o popup
     private String nomeUsuario = null;
-
+    //Botao de logar/deslogar
     private Button btnFazerLogin;
+    //Botao para testes da tela de Movimentacao
+    private Button btnMov;
+    //Inicia movDAO para adiantar processo
+    private MovimentacoesDAO movimentacoesDAO;
+    //ProgressBar
+    private ProgressBar pLogin;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        btnMov = findViewById(R.id.btnMov);
         btnFazerLogin = findViewById(R.id.btnLogin);
+        pLogin = findViewById(R.id.progressLoadingGoogle);
 
-        mAuth = FirebaseConfig.getFirebaseAuth();
-
-        if (mAuth.getCurrentUser() == null) {
-            btnFazerLogin.setText("Logar");
-        }else {
-            btnFazerLogin.setText("Deslogar");
-        }
+        btnMov.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loginGoogle.Logout();
+                Toast.makeText(LoginActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
+                btnFazerLogin.setVisibility(View.VISIBLE);
+                pLogin.setVisibility(View.GONE);
+            }
+        });
 
         btnFazerLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mAuth.getCurrentUser() == null) {
-                    btnFazerLogin.setText("Deslogar");
                     fazerLogin();
                 }else {
-                    btnFazerLogin.setText("Logar");
-                    loginGoogle.Logout();
-                    Toast.makeText(LoginActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
+                    validarCadastro();
                 }
             }
         });
+
+
     }
 
 
     @Override
     protected void onStart() {
         super.onStart();
+        //Verificando login
+        mAuth = FirebaseConfig.getFirebaseAuth();
         //preenchendo usuário, opcional, pode utilizar-se as props do próprio FirebaseAuth
         mUser = FirebaseConfig.getFirebaseAuth().getCurrentUser();
+        //Se já está logado, vai p outra tela
+        if (mUser != null) validarCadastro();
         //Configurando Login
         loginGoogle = new LoginGoogle();
         mGoogleSignInClient = loginGoogle.configurarGoogle(getString(R.string.default_web_client_id), this);
@@ -93,7 +112,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Log.i("Logando", "onResult override");
         if (requestCode == GOOGLE_SIGN) {
             Task<GoogleSignInAccount> task = GoogleSignIn
                     .getSignedInAccountFromIntent(data);
@@ -104,73 +122,14 @@ public class LoginActivity extends AppCompatActivity {
 
                 if (conta != null) {
 
-                    Handler handler = new Handler();
-                    Handler handler1 = new Handler();
-
+                    //Configura login Google
                     loginGoogle.firebaseAuthAuthWithGoogle(conta);
+                    //Antecipa método de pegar usuário
+                    mUser = mAuth.getInstance().getCurrentUser();
+                    //Executa método de pegar ou cadastrar usuário
+                    validarCadastro();
 
-                    handler.post(new Runnable() {
-                        int i = 0;
-                        @Override
-                        public void run() {
-
-                            mUser = mAuth.getInstance().getCurrentUser();
-
-                            handler.postDelayed(this, 2000);
-                        //    progressAuth.setVisibility(View.VISIBLE);
-
-                            //Verificar se o usuário identificado está nulo
-                            if (mUser != null) {
-
-                                //Verifica usuário no BD
-
-                                     usuario = usuarioDAO.getUsuarioCadastradoFirebase();
-
-                                handler1.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-
-
-
-                                    if (usuario.isCadastrado()) {
-                                        handler.removeCallbacks(this);
-                                        handler1.removeCallbacks(this);
-                                //        progressAuth.setVisibility(View.GONE);
-                                        Toast.makeText(LoginActivity.this, "Logado com sucesso!", Toast.LENGTH_SHORT).show();
-                                    }else {
-
-
-                                            if (usuario.getNome() == null) {
-                                                handler.removeCallbacks(this);
-                                                handler1.removeCallbacks(this);
-                                                //solicitar nome do usuário e cadastrar aqui
-                                                solicitaNomeCadastro(usuario);
-
-                                            } else if (!usuario.getNome().isEmpty()) {
-                                                handler.removeCallbacks(this);
-                                                handler1.removeCallbacks(this);
-                                                //cadastrar usuário aqui
-
-                                            }
-                                    }
-                                    }
-                                }, 3000);
-
-                            }else {
-                                //Caso seja nulo, aumenta o contador em 1, caso atinja 5 o app será interrompido
-                                Log.i("Logando", "Usuário null " + i);
-                                i++;
-                                if (i >= 5) {
-                                    handler.removeCallbacks(this);
-                                    Toast.makeText(LoginActivity.this, "Houve uma falha durante o login. Reinicie o aplicativo.", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                }
-                            }
-
-                        }
-                    });
-                }
-
+                }else Toast.makeText(loginGoogle, "Conta Google nula... Por favor, tente novamente.", Toast.LENGTH_SHORT).show();
 
             }catch (ApiException e){
                 e.printStackTrace();
@@ -199,7 +158,6 @@ public class LoginActivity extends AppCompatActivity {
                 }else {
                     nomeUsuario = editNome.getText().toString();
                     usuario.setNome(editNome.getText().toString());
-                    usuarioDAO.salvarUser(usuarioCadastrado);
                     dialogNome.dismiss();
                 }
             }
@@ -209,9 +167,85 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public void fazerLogin(){
+    private void fazerLogin(){
+        pLogin.setVisibility(View.VISIBLE);
+        btnFazerLogin.setVisibility(View.GONE);
         Intent logarIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(logarIntent, GOOGLE_SIGN);
 
     }
+
+    public void telaMovimentacao(){
+        Intent intent = new Intent(this, MovimentacaoActivity.class);
+        startActivity(intent);
+    }
+
+    //Método genérico para determinar quanto tempo será aguardado para ir para a proxima tela
+    private void finalizarLoading(Handler handler, int tempoEspera){
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                handler.removeCallbacks(this);
+                pLogin.setVisibility(View.GONE);
+                telaMovimentacao();
+            }
+        }, tempoEspera);
+    }
+
+    //Método que validará se o user está logado ou não
+    private void validarCadastro(){
+
+         pLogin.setVisibility(View.VISIBLE);
+         btnFazerLogin.setVisibility(View.GONE);
+
+         Handler handler = new Handler();
+
+            handler.post(new Runnable() {
+                int i = 0;
+                @Override
+                public void run() {
+
+                    mUser = mAuth.getInstance().getCurrentUser();
+
+                    handler.postDelayed(this, 800);
+                    //    progressAuth.setVisibility(View.VISIBLE);
+
+                    //Verificar se o usuário identificado está nulo
+
+                    if (mUser != null) {
+                        if (usuariosDAO.getOrSubUsuario()) {
+                            handler.removeCallbacks(this);
+                            Toast.makeText(LoginActivity.this, "Logado com sucesso! Redirecionando...", Toast.LENGTH_SHORT).show();
+                            Log.i("Logando", mUser.getEmail());
+
+                          //De acordo com o contador determina velocidade do loading da proxima tela
+                            if (i < 7) {
+                                pLogin.setVisibility(View.GONE);
+                                telaMovimentacao();
+                            } else if (i >= 7 && i < 15) {
+                                finalizarLoading(handler, 1000);
+                            } else if (i >= 15 && i < 30) {
+                                finalizarLoading(handler, 2300);
+                            } else if (i >= 30) {
+                                finalizarLoading(handler, 4500);
+                            }
+
+                        }
+                    }else {
+
+                        //Caso seja nulo, aumenta o contador em 1, caso atinja 5 o app será interrompido
+                        Log.i("Logando", "Usuário null " + i);
+                        i++;
+                        if (i == 10) {
+                            Toast.makeText(getApplicationContext(), "Conexão lenta... Pode ser mais demorado o carregamento...", Toast.LENGTH_SHORT).show();
+                        } else if (i >= 75) {
+                            handler.removeCallbacks(this);
+                            Toast.makeText(LoginActivity.this, "Houve uma falha durante o login. Reinicie o aplicativo.", Toast.LENGTH_SHORT).show();
+                            finish();
+                        }
+                    }
+
+                }
+            });
+        }
 }
