@@ -6,8 +6,6 @@ import androidx.annotation.NonNull;
 
 import com.example.aulafirebase.Model.Usuario;
 import com.example.aulafirebase.helper.Base64Custom;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -17,9 +15,9 @@ import com.google.firebase.database.ValueEventListener;
 
 public class UsuariosDAO {
     //Autentificacao
-    private FirebaseAuth autentificacao = FirebaseConfig.getFirebaseAuth();
+    private final FirebaseAuth autentificacao = FirebaseConfig.getFirebaseAuth();
     //Referencia ao nó usuários
-    private DatabaseReference usuariosRef = FirebaseDatabase.getInstance().getReference().child("usuarios");
+    private final DatabaseReference usuariosRef = FirebaseDatabase.getInstance().getReference().child("usuarios");
     //Referencia que será usada como nó do usuário cadastrado
     private DatabaseReference usuariosAdd;
     //objeto Usuario que receberá o usuario logado
@@ -29,7 +27,7 @@ public class UsuariosDAO {
 
 
 
-    public Boolean getOrSubUsuario(){
+    public Boolean validateOrSubUsuario(){
         //Codifica ID do usuário
         String idUsuario = Base64Custom.codificarBase64(autentificacao.getCurrentUser().getEmail());
         //Usa um dbReference novo (usuariosAdd para receber o valor usuariosRef.chil) pode ser alterado. Passa como parametro o email codificado
@@ -45,10 +43,8 @@ public class UsuariosDAO {
                 } //Se não, cadastra
                 else {
                     Log.i("Logando", "Usuario não cadastrado");
-                    if(usuariosRef.child(idUsuario)
-                            .setValue(usuario).isSuccessful()){
-                        isSucess = true;
-                    }else isSucess = false;
+                    isSucess = usuariosRef.child(idUsuario)
+                            .setValue(usuario).isSuccessful();
 
                 }
             }
@@ -60,6 +56,27 @@ public class UsuariosDAO {
         });
 
        return isSucess;
+    }
+
+    public Usuario getUsuario (){
+        //Codifica ID do usuário
+        String idUsuario = Base64Custom.codificarBase64(autentificacao.getCurrentUser().getEmail());
+        //Usa um dbReference novo (usuariosAdd para receber o valor usuariosRef.chil) pode ser alterado. Passa como parametro o email codificado
+        DatabaseReference getUsuario = usuariosRef.child(idUsuario);
+
+        getUsuario.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                usuario = dataSnapshot.getValue(Usuario.class);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+        return usuario;
     }
 }
 

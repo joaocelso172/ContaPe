@@ -1,37 +1,32 @@
 package com.example.aulafirebase.DAL;
 
-import android.renderscript.Sampler;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
 import com.example.aulafirebase.Model.Usuario;
 import com.example.aulafirebase.helper.Base64Custom;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 public class UsuarioDAO {
 
     private boolean isSucess = false;
 
-    private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
     private DatabaseReference usuarioQuery;
 
     //Referencia ao BD configurado no json
-    private DatabaseReference refenciaDb = FirebaseDatabase.getInstance().getReference();
+    private final DatabaseReference refenciaDb = FirebaseDatabase.getInstance().getReference();
     //Referencia ao branch de usuarios feito baseada numa referencia geral já existente
-    private DatabaseReference usuarios = refenciaDb.child("usuarios");
+    private final DatabaseReference usuarios = refenciaDb.child("usuarios");
     //EventListener deve ser sempre fechado
     private ValueEventListener valueEventListener;
 
@@ -109,15 +104,12 @@ public class UsuarioDAO {
             //Cria uma Pk e insere os dados de um usuário ao BD
             String idUsuario = Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail());
             usuarios.child(idUsuario)
-                    .setValue(usuario).addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()){
-                        Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario));
-                        //removerEventListener();
-                    }
-                }
-            });
+                    .setValue(usuario).addOnCompleteListener(task -> {
+                        if (task.isSuccessful()){
+                            Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario));
+                            //removerEventListener();
+                        }
+                    });
 
             isSucess = true;
 
@@ -177,15 +169,12 @@ public class UsuarioDAO {
             //Cria uma Pk e insere os dados de um usuário ao BD
             String idUsuario = Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail());
             usuarios.child(idUsuario)
-                    .setValue(usuario).addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()){
-                        Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario) + ", " + usuario.getNome());
-                        //removerEventListener();
-                    }
-                }
-            });
+                    .setValue(usuario).addOnCompleteListener(task -> {
+                        if (task.isSuccessful()){
+                            Log.i("Logando", "Cadastrado com sucesso, " + Base64Custom.decodificarBase64(idUsuario) + ", " + usuario.getNome());
+                            //removerEventListener();
+                        }
+                    });
 
             isSucess = true;
 

@@ -12,12 +12,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.R;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdapter.MyViewHolder> {
 
-    List<Movimentacao> listaMovimentacaos;
-    Context context;
+    private final List<Movimentacao> listaMovimentacaos;
+    private final Context context;
+
+    private final DecimalFormat decimalFormat = new DecimalFormat("0.##");
 
     public MovimentacoesAdapter(List<Movimentacao> listaMovimentacaos, Context context) {
         this.listaMovimentacaos = listaMovimentacaos;
@@ -37,11 +40,22 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
 
         Movimentacao movimentacao = listaMovimentacaos.get(position);
-        holder.txtNomeTarefa.setText(movimentacao.getNomeTarefa());
-        holder.txtDescTarefa.setText(movimentacao.getDescTarefa());
+        holder.txtCat.setText(movimentacao.getCategoria());
+        holder.txtDesc.setText(movimentacao.getDescTarefa());
 
-        holder.txtNomeTarefa.setTextColor(context.getResources().getColor(R.color.colorAccent));
-        holder.txtDescTarefa.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+            if (movimentacao.getTipo().equals("r")) {
+                holder.txtCat.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+                holder.txtDesc.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+                holder.txtValor.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+                holder.txtValor.setText("  R$ " + decimalFormat.format(movimentacao.getValor()));
+            } else {
+                holder.txtCat.setTextColor(context.getResources().getColor(R.color.colorAccent));
+                holder.txtDesc.setTextColor(context.getResources().getColor(R.color.colorAccent));
+                holder.txtValor.setTextColor(context.getResources().getColor(R.color.colorAccent));
+                holder.txtValor.setText("- R$ " + decimalFormat.format(movimentacao.getValor()));
+            }
+
+
 
     }
 
@@ -53,13 +67,15 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
 
-        TextView txtNomeTarefa;
-        TextView txtDescTarefa;
+        final TextView txtCat;
+        final TextView txtDesc;
+        final TextView txtValor;
 
-        public MyViewHolder(@NonNull View itemView) {
+        MyViewHolder(@NonNull View itemView) {
             super(itemView);
-            txtNomeTarefa = itemView.findViewById(R.id.txtNomeTarefa);
-            txtDescTarefa = itemView.findViewById(R.id.txtDescTarefa);
+            txtCat = itemView.findViewById(R.id.txtNomeTarefa);
+            txtDesc = itemView.findViewById(R.id.txtDescTarefa);
+            txtValor = itemView.findViewById(R.id.txtValor);
 
         }
     }

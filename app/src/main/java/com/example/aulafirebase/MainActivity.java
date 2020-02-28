@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.aulafirebase.LoginGoogle.GOOGLE_SIGN;
-import static com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig.ConfigurarRecycler;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -46,19 +45,19 @@ public class MainActivity extends AppCompatActivity {
     //Variavel referente a lista Recycler de Tarefas
     private RecyclerView recyclerTarefas;
     //Variavel referente a lista de tarefas que alimentará o recycler
-    private List<Movimentacao> listaMovimentacaos = new ArrayList<>();
+    private final List<Movimentacao> listaMovimentacaos = new ArrayList<>();
     //Variavel que recupera um objeto TarefaAdapter
     private MovimentacoesAdapter movimentacoesAdapter = new MovimentacoesAdapter(listaMovimentacaos, this);
     //Variavel de autentificacao para puxar usuário logado e deslogar
     private FirebaseAuth mAuth;
     //Variavel que vai receber o usuário, mUser = mAuth.getCurrentUser();
-    private FirebaseUser mUser = mAuth.getInstance().getCurrentUser();
+    private FirebaseUser mUser = FirebaseAuth.getInstance().getCurrentUser();
     //Configurações de Login com Google, necessário acompanhar GoogleSignInOption, incluso em LooginGoogle.java
     private GoogleSignInClient mGoogleSignInClient;
     //Variavel da classe que puxaremos os objetos
     private LoginGoogle loginGoogle;
     //Variavel que dá origem ao objeto que controlará o CRUD de dados no BD referente a usuários
-    private UsuarioDAO usuarioDAO = new UsuarioDAO();
+    private final UsuarioDAO usuarioDAO = new UsuarioDAO();
     //Variavel usada para interagir com o CRUD de Tarefas
     private MovimentacoesDAO movimentacoesDAO = new MovimentacoesDAO();
 
@@ -68,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText edNome, edDesc, edPrioridade, edAssociado;
     private Spinner spinNomes;
     private ProgressBar progressAuth;
-    private String[] nomeUsuarios = new String[]{"João", "Teste 01", "Teste 02"};
+    private final String[] nomeUsuarios = new String[]{"João", "Teste 01", "Teste 02"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,17 +86,14 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intentMovimentacoes = new Intent(this, MovimentacaoActivity.class);
 
-        edPrioridade.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-               startActivity(intentMovimentacoes);
-               return true;
-            }
+        edPrioridade.setOnTouchListener((v, event) -> {
+           startActivity(intentMovimentacoes);
+           return true;
         });
 
 
             //preenchendo usuário, opcional, pode utilizar-se as props do próprio FirebaseAuth
-            mUser = mAuth.getInstance().getCurrentUser();
+            mUser = FirebaseAuth.getInstance().getCurrentUser();
             //Configurando Login
             loginGoogle = new LoginGoogle();
             mGoogleSignInClient = loginGoogle.configurarGoogle(getString(R.string.default_web_client_id), this);
@@ -133,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
     //    retornarRecyclerTarefas();
         
-        ArrayAdapter <String> arrayAdapter = new ArrayAdapter<String>(this, R.layout.support_simple_spinner_dropdown_item, nomeUsuarios);
+        ArrayAdapter <String> arrayAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, nomeUsuarios);
         arrayAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
 
        // spinNomes.setAdapter(arrayAdapter);
@@ -144,20 +140,14 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        btnEnviarTarefa.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-       //         gravarFirebase();
-            }
+        btnEnviarTarefa.setOnClickListener(v -> {
+   //         gravarFirebase();
         });
 
 
-        imgPerfil.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loginGoogle.Logout();
-                Toast.makeText(MainActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
-            }
+        imgPerfil.setOnClickListener(v -> {
+            loginGoogle.Logout();
+            Toast.makeText(MainActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
         });
 
 
@@ -165,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void retornarRecyclerTarefas(){
+ /*   public void retornarRecyclerTarefas(){
 
 
        movimentacoesDAO.listarMovimentacoes(listaMovimentacaos, movimentacoesAdapter);
@@ -192,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-    }
+    }*/
 
 
     public void gravarFirebase(){
@@ -248,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            mUser = mAuth.getInstance().getCurrentUser();
+                            mUser = FirebaseAuth.getInstance().getCurrentUser();
 
                             handler.postDelayed(this, 1000);
                             progressAuth.setVisibility(View.VISIBLE);

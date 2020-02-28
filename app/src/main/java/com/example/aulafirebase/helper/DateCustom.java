@@ -9,15 +9,14 @@ public class DateCustom {
         long date = System.currentTimeMillis();
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy - hh:mm");
-        String dataString = simpleDateFormat.format(date);
 
-        return dataString;
+        return simpleDateFormat.format(date);
     }
 
     public static String firebaseFormatDate(String data){
 
         //Quebra a string no padrão escrito, neste caso, quebrará a cada '/'
-        String dataFormatada[] = data.split("/");
+        String[] dataFormatada = data.split("/");
 
         //Estabelece um novo padrão, agora todos são separados por Hífen
         String dataFormatoNovo = dataFormatada[0] + " - "
@@ -25,7 +24,7 @@ public class DateCustom {
                 + " - " + dataFormatada[2];
 
         //Pega novamente a data completa e quebra a cada ' - '.
-        String dataBuilder[] = dataFormatoNovo.split(" - ");
+        String[] dataBuilder = dataFormatoNovo.split(" - ");
 
         //Pega o indice 0, equivalente ao dia no nosso formato estabelecido
         String dia = dataBuilder[0];
@@ -37,15 +36,14 @@ public class DateCustom {
         String hora = dataBuilder[3];
 
 
-        String dataRetorno = ano + "/" + mes + "/" + dia;
-
-        return dataRetorno;
+        return ano + "/" + mes;
     }
+
 
     public static String udemyFormatDate(String data){
 
         //Quebra a string no padrão escrito, neste caso, quebrará a cada '/'
-        String dataFormatada[] = data.split("/");
+        String[] dataFormatada = data.split("/");
 
         //Pega o indice 0, equivalente ao dia no nosso formato estabelecido
         String dia = dataFormatada[0];
@@ -55,8 +53,6 @@ public class DateCustom {
         String ano = dataFormatada[2];
 
 
-        String dataRetorno = mes + ano;
-
-        return dataRetorno;
+        return mes + ano;
     }
 }

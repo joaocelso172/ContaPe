@@ -2,17 +2,18 @@ package com.example.aulafirebase.Model;
 
 public class Movimentacao {
 
-    private String nomeTarefa, descTarefa, dataTarefa, tipo, categoria;
+    private String descTarefa, dataTarefa, tipo, categoria;
     private Double valor;
+    private String ID;
 
-    public Movimentacao(String nomeTarefa, String descTarefa, String dataTarefa, String tipo, String categoria, Double valor) {
-        this.nomeTarefa = nomeTarefa;
-        this.descTarefa = descTarefa;
-        this.dataTarefa = dataTarefa;
-        this.tipo = tipo;
-        this.categoria = categoria;
-        this.valor = valor;
+    public String getID() {
+        return ID;
     }
+
+    public void setID(String ID) {
+        this.ID = ID;
+    }
+
 
     public String getDataTarefa() {
         return dataTarefa;
@@ -48,19 +49,6 @@ public class Movimentacao {
 
     public Movimentacao(){
 
-    }
-
-    public Movimentacao(String nomeTarefa, String descTarefa) {
-        this.nomeTarefa = nomeTarefa;
-        this.descTarefa = descTarefa;
-    }
-
-    public String getNomeTarefa() {
-        return nomeTarefa;
-    }
-
-    public void setNomeTarefa(String nomeTarefa) {
-        this.nomeTarefa = nomeTarefa;
     }
 
     public String getDescTarefa() {

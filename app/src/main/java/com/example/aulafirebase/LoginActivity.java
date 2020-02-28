@@ -16,7 +16,6 @@ import android.widget.Toast;
 
 import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
-import com.example.aulafirebase.DAL.UsuarioDAO;
 import com.example.aulafirebase.DAL.UsuariosDAO;
 import com.example.aulafirebase.Model.Usuario;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -24,7 +23,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -42,9 +40,9 @@ public class LoginActivity extends AppCompatActivity {
     //Variavel da classe que puxaremos os objetos
     private LoginGoogle loginGoogle;
     //Variavel que dá origem ao objeto que controlará o CRUD de dados no BD referente a usuários
-    private UsuariosDAO usuariosDAO = new UsuariosDAO();
+    private final UsuariosDAO usuariosDAO = new UsuariosDAO();
     //Variavel de usuário
-    private Usuario usuario = new Usuario();
+    private final Usuario usuario = new Usuario();
     //Variavel responsável por abrir o dialogo para o usuário colocar o nome
     private Dialog dialogNome;
     //Variavel que receberá o nome do usuário caso abra o popup
@@ -69,24 +67,18 @@ public class LoginActivity extends AppCompatActivity {
         btnFazerLogin = findViewById(R.id.btnLogin);
         pLogin = findViewById(R.id.progressLoadingGoogle);
 
-        btnMov.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loginGoogle.Logout();
-                Toast.makeText(LoginActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
-                btnFazerLogin.setVisibility(View.VISIBLE);
-                pLogin.setVisibility(View.GONE);
-            }
+        btnMov.setOnClickListener(v -> {
+            loginGoogle.Logout();
+            Toast.makeText(LoginActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
+            btnFazerLogin.setVisibility(View.VISIBLE);
+            pLogin.setVisibility(View.GONE);
         });
 
-        btnFazerLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mAuth.getCurrentUser() == null) {
-                    fazerLogin();
-                }else {
-                    validarCadastro();
-                }
+        btnFazerLogin.setOnClickListener(v -> {
+            if (mAuth.getCurrentUser() == null) {
+                fazerLogin();
+            }else {
+                validarCadastro();
             }
         });
 
@@ -125,7 +117,7 @@ public class LoginActivity extends AppCompatActivity {
                     //Configura login Google
                     loginGoogle.firebaseAuthAuthWithGoogle(conta);
                     //Antecipa método de pegar usuário
-                    mUser = mAuth.getInstance().getCurrentUser();
+                    mUser = FirebaseAuth.getInstance().getCurrentUser();
                     //Executa método de pegar ou cadastrar usuário
                     validarCadastro();
 
@@ -144,22 +136,19 @@ public class LoginActivity extends AppCompatActivity {
         dialogNome = new Dialog(this);
 
         dialogNome.setContentView(R.layout.dialog_login);
-        editNome = (EditText) dialogNome.findViewById(R.id.editNomeUsuario);
-        btnCadastrar = (Button) dialogNome.findViewById(R.id.btnJuntar);
+        editNome = dialogNome.findViewById(R.id.editNomeUsuario);
+        btnCadastrar = dialogNome.findViewById(R.id.btnJuntar);
 
 
 
-        btnCadastrar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        btnCadastrar.setOnClickListener(view -> {
 
-                if (editNome.getText().toString().isEmpty()){
-                    editNome.setError("Digite um nome para continuar!");
-                }else {
-                    nomeUsuario = editNome.getText().toString();
-                    usuario.setNome(editNome.getText().toString());
-                    dialogNome.dismiss();
-                }
+            if (editNome.getText().toString().isEmpty()){
+                editNome.setError("Digite um nome para continuar!");
+            }else {
+                nomeUsuario = editNome.getText().toString();
+                usuario.setNome(editNome.getText().toString());
+                dialogNome.dismiss();
             }
         });
         dialogNome.setCanceledOnTouchOutside(false);
@@ -175,7 +164,7 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public void telaMovimentacao(){
+    private void telaMovimentacao(){
         Intent intent = new Intent(this, MovimentacaoActivity.class);
         startActivity(intent);
     }
@@ -205,7 +194,7 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void run() {
 
-                    mUser = mAuth.getInstance().getCurrentUser();
+                    mUser = FirebaseAuth.getInstance().getCurrentUser();
 
                     handler.postDelayed(this, 800);
                     //    progressAuth.setVisibility(View.VISIBLE);
@@ -213,7 +202,7 @@ public class LoginActivity extends AppCompatActivity {
                     //Verificar se o usuário identificado está nulo
 
                     if (mUser != null) {
-                        if (usuariosDAO.getOrSubUsuario()) {
+                        if (usuariosDAO.validateOrSubUsuario()) {
                             handler.removeCallbacks(this);
                             Toast.makeText(LoginActivity.this, "Logado com sucesso! Redirecionando...", Toast.LENGTH_SHORT).show();
                             Log.i("Logando", mUser.getEmail());
@@ -248,4 +237,5 @@ public class LoginActivity extends AppCompatActivity {
                 }
             });
         }
+        
 }
