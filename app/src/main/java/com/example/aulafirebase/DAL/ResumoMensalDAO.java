@@ -65,10 +65,30 @@ public class ResumoMensalDAO {
         return resumoMensal;
     }
 
+    public ResumoMensal getResumoMensal(String anoMes){
+
+            DatabaseReference resumo = getDatabaseResumo(anoMes);
+
+            resumo.addValueEventListener(new ValueEventListener() { //Cogitar alterar para ValueEventListener sempre ativo
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    resumoMensal = dataSnapshot.getValue(ResumoMensal.class);
+                }else resumoMensal = new ResumoMensal(0.0, 0.0, 0.0, anoMes);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+        return resumoMensal;
+    }
+
 
     public Boolean setResumoMensal(ResumoMensal resumo){
 
-        return getDatabaseResumo(resumo.getAno(), resumo.getMes()).setValue(resumo).isSuccessful();
+        return getDatabaseResumo(resumo.getAnoMes()).setValue(resumo).isSuccessful();
     }
 
     public Boolean setResumoMensal(ResumoMensal resumo, String dataMov){
@@ -85,10 +105,4 @@ public class ResumoMensalDAO {
 
         return refenciaDb.child("usuarios").child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail())).child("Movimentacoes").child(anoMes).child("ResumoMensal");
     }
-
-    public Boolean atualizarSaldoMensal(ResumoMensal resumo){
-
-        return getDatabaseResumo(resumo.getAno(), resumo.getMes()).child("saldoMensal").setValue(resumo.getSaldoMensal()).isSuccessful();
-    }
-
 }

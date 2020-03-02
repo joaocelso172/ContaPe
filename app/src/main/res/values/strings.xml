@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">AulaFirebase</string>
-    <string name="title_activity_tarefas_acitivity">TarefasAcitivity</string>
-    <string name="title_activity_tarefa">TarefaActivity</string>
-    <string name="title_activity_add_movimentacao">AddMovimentacaoActivity</string>
-    <string name="title_activity_add_despesa">AddDespesaActivity</string>
+    <string name="app_name">contaPê</string>
+    <string name="title_activity_tarefas_acitivity">Movimentações Individuais</string>
+    <string name="title_activity_tarefa">Movimentações Individuais</string>
+    <string name="title_activity_add_movimentacao">Adicionar Receita</string>
+    <string name="title_activity_add_despesa">Adicionar Receita</string>
 
     <!-- TODO: Remove or change this placeholder text -->
 </resources>

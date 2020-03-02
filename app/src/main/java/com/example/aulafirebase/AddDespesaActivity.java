@@ -1,8 +1,10 @@
 package com.example.aulafirebase;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -10,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,13 +28,15 @@ import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.Model.Usuario;
 import com.example.aulafirebase.helper.DateCustom;
 import com.google.android.material.textfield.TextInputEditText;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
+
+import br.com.sapereaude.maskedEditText.MaskedEditText;
 
 @RequiresApi(api = Build.VERSION_CODES.M)
 public class AddDespesaActivity extends AppCompatActivity {
-    
-    //Objeto de verificacao de conexão
-    private ConnectivityManager cm;
-    private NetworkInfo networkInfo;
+
     //Botão para salvar despesa
     private Button btnSalvarDespesa;
     //Edit Text referente a campos
@@ -57,6 +62,11 @@ public class AddDespesaActivity extends AppCompatActivity {
     private Double saldoMensal;
     //Atributo que retorna true quando resumo está ok
     private Boolean resumoRecuperado = false;
+    private MaskedEditText editHoraDespesa;
+    private Bundle bundleData;
+    private String anoSel, mesSel;
+
+    private Boolean dataClicada = false;
 
 
 
@@ -71,6 +81,7 @@ public class AddDespesaActivity extends AppCompatActivity {
         edNomeDespesa = findViewById(R.id.edNomeDespesa);
         edValorDespesa = findViewById(R.id.edValorDespesa);
         spinnerCategoriaDespesa = findViewById(R.id.spinnerCatDespesa);
+        editHoraDespesa = findViewById(R.id.editHoraDespesa);
 
 
         //Adapter para utilizar o spinner
@@ -81,8 +92,73 @@ public class AddDespesaActivity extends AppCompatActivity {
         //Setando o Adapter ao Spinner
         spinnerCategoriaDespesa.setAdapter(arrayAdapter);
 
-        //Preenche com a data atual, incluindo data
-        edDataDespesa.setText( DateCustom.dataAtual() );
+        bundleData = getIntent().getExtras();
+        if( (!bundleData.getString("ano").equals(null)) && (!bundleData.getString("mes").equals(null)) ) {
+            anoSel = bundleData.getString("ano");
+            mesSel = bundleData.getString("mes");
+            edDataDespesa.setText( "01" + "/" + mesSel + "/" + anoSel );
+        }else edDataDespesa.setText( DateCustom.dataAtual() ); //Preenche com a data atual
+
+        //Preenche com a hora atual
+        editHoraDespesa.setText(DateCustom.horaAtual());
+
+        edDataDespesa.setOnTouchListener((v, event) -> {
+            if (!dataClicada){
+                dialogCalendario();
+            }else dataClicada = false;
+            return true;
+        });
+
+        editHoraDespesa.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                editHoraDespesa.setText("");
+                return false;
+            }
+        });
+
+
+        /*editHoraDespesa.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (editHoraDespesa.getText().toString().isEmpty()) editHoraDespesa.setText(DateCustom.horaAtual());
+            }
+        });*/
+
+        editHoraDespesa.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                String[] hora;
+
+                hora = DateCustom.recuperarHora(editHoraDespesa.getText().toString());
+
+                if ( (!hasFocus && editHoraDespesa.getText().toString().equals(""))) editHoraDespesa.setText(DateCustom.horaAtual());
+                if ((!hasFocus && hora.length > 0 && hora[0] != "")) {
+                    if (Integer.parseInt(hora[0]) >= 24 ){
+                        editHoraDespesa.setError("A hora não pode ser superior a 24!");
+                        editHoraDespesa.setText("");
+                    }else if ( !hasFocus && hora.length == 1 && hora[0] != ""){
+                        if (Integer.parseInt(hora[0]) < 10) hora[0] = "0" + hora[0];
+                        editHoraDespesa.setText(hora[0] + ":" + "00");
+                    }else if ( !hasFocus && hora.length == 2 && hora[1] != ""){
+                        if (Integer.parseInt(hora[1]) >= 60 ){
+                            editHoraDespesa.setError("O minuto não pode ser superior a 60!");
+                            editHoraDespesa.setText("");
+                        }else if (Integer.parseInt(hora[1]) < 6) hora[1] = hora[1] + "0"; else if (Integer.parseInt(hora[1]) < 10) hora[1] = "0" + hora[1];
+                        editHoraDespesa.setText(hora[0] + ":" + hora[1]);
+                    }
+                }
+
+
+            }
+        });
+
+        edDataDespesa.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
 
         btnSalvarDespesa.setOnClickListener(v -> salvarDespesa());
 
@@ -112,7 +188,7 @@ public class AddDespesaActivity extends AppCompatActivity {
             //Setando valores de acordo com os campos
             despesaSalva.setValor(valor);
             despesaSalva.setDescTarefa(edDescDespesa.getText().toString());
-            despesaSalva.setDataTarefa(edDataDespesa.getText().toString());
+            despesaSalva.setDataTarefa(edDataDespesa.getText().toString() + " - " + editHoraDespesa.getText());
             despesaSalva.setCategoria(spinnerCategoriaDespesa.getSelectedItem().toString());
             //Caso despesa = 'r'; Caso Despesa = 'd'.
             despesaSalva.setTipo("d");
@@ -131,14 +207,13 @@ public class AddDespesaActivity extends AppCompatActivity {
                 if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
                         despesasDAO.salvarMovimentacao(despesaSalva);
                         despesasDAO.atualizarDespesa(despesaAtualizada);
-                           if (saldoAtual >= usuario.getValorAlerta())
-                               Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
-                             if (saldoAtual < usuario.getValorAlerta())
-                               Toast.makeText(this, "Despesa salva... Atente-se as finanças! Saldo abaixo do seguro...", Toast.LENGTH_SHORT).show(); //Adicionar valor seguro
+                         /*  if (saldoAtual >= usuario.getValorAlerta()) Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
+                           if (saldoAtual < usuario.getValorAlerta()) Toast.makeText(this, "Despesa salva... Atente-se as finanças! Saldo abaixo do seguro...", Toast.LENGTH_SHORT).show(); //Adicionar valor seguro*/
+                    Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
                             finish();
                 }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
             }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
-        }else Toast.makeText(this, "Preencha todos os campos para poder continuar", Toast.LENGTH_SHORT).show();
+        }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
 
     private Boolean validarCampos(){
@@ -174,6 +249,21 @@ public class AddDespesaActivity extends AppCompatActivity {
             Toast.makeText(this, "Categoria padrão selecionada", Toast.LENGTH_SHORT).show();
         }
 
+        String[] hora;
+
+        hora = DateCustom.recuperarHora(editHoraDespesa.getText().toString());
+
+        if (editHoraDespesa.getText().toString().isEmpty()){
+            editHoraDespesa.setError("Preencha a hora da receita para continuar!");
+            return false;
+        }else if (Integer.parseInt(hora[0]) >= 24){
+            editHoraDespesa.setError("A hora não pode ser superior a 24!");
+            return false;
+        }else if (Integer.parseInt(hora[1]) >= 60){
+            editHoraDespesa.setError("O minuto não pode ser superior a 60!");
+            return false;
+        }
+
         //Caso estejam, retorna true, caso não, retornam false
         return true;
     }
@@ -198,12 +288,53 @@ public class AddDespesaActivity extends AppCompatActivity {
                         handler.removeCallbacks(this);
                         resumoRecuperado =  true;
                 }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
-
-                Log.i("Logando", "Status: " + resumoRecuperado);
             }
         });
 
         return resumoRecuperado;
+    }
+
+    private void dialogCalendario(){
+        dataClicada = true;
+        Dialog dialogoCalendario = new Dialog(this);
+
+        dialogoCalendario.setContentView(R.layout.calendario_selecao);
+        MaterialCalendarView materialCalendarViewReceita = dialogoCalendario.findViewById(R.id.calendarioAddMovimentacao);
+        Button btnConfirmarData = dialogoCalendario.findViewById(R.id.btnConfirmarCalendario);
+
+        CharSequence[] meses = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"};
+        materialCalendarViewReceita.setTitleMonths(meses);
+
+        CharSequence[] semanas = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"};
+        materialCalendarViewReceita.setWeekDayLabels(semanas);
+
+        materialCalendarViewReceita.setOnDateChangedListener(new OnDateSelectedListener() {
+            @Override
+            public void onDateSelected(@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) {
+                String anoSel = String.valueOf( date.getYear() );
+                String mesSel = String.valueOf( date.getMonth() );
+                String diaSel = String.valueOf( date.getDay() );
+
+                //Se for menor que dez, adiciona zero
+                if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
+                if (Integer.parseInt(diaSel) < 10) diaSel = "0" + Integer.parseInt(diaSel);
+
+                edDataDespesa.setText(diaSel + "/" + mesSel + "/" + anoSel);
+
+            }
+        });
+
+        btnConfirmarData.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoCalendario.dismiss();
+            }
+        });
+
+
+        dialogoCalendario.show();
+
+
     }
 
 }

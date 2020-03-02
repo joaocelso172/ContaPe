@@ -137,7 +137,7 @@ public class LoginActivity extends AppCompatActivity {
 
         dialogNome.setContentView(R.layout.dialog_login);
         editNome = dialogNome.findViewById(R.id.editNomeUsuario);
-        btnCadastrar = dialogNome.findViewById(R.id.btnJuntar);
+        btnCadastrar = (Button) dialogNome.findViewById(R.id.btnJuntar);
 
 
 

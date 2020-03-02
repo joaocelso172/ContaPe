@@ -1,7 +1,9 @@
 package com.example.aulafirebase;
 
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 
 import com.example.aulafirebase.Adapter.MovimentacoesAdapter;
@@ -10,11 +12,7 @@ import com.example.aulafirebase.DAL.ResumoMensalDAO;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig;
-import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
-import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
-import com.prolificinteractive.materialcalendarview.OnMonthChangedListener;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,8 +33,9 @@ import java.util.List;
 
 public class MovimentacaoActivity extends AppCompatActivity {
 
+    //Calendario
     private MaterialCalendarView materialCalendarView;
-    private final MovimentacoesDAO movimentacoesDAO = new MovimentacoesDAO();
+    private MovimentacoesDAO movimentacoesDAO = new MovimentacoesDAO();
     //Variaveis de retorno
     private Double receitaTotal = movimentacoesDAO.getReceitaTotal(), despesaTotal = movimentacoesDAO.getDespesaTotal()
     , saldoFinal, alerta = movimentacoesDAO.getAlerta();
@@ -52,11 +52,13 @@ public class MovimentacaoActivity extends AppCompatActivity {
     private MovimentacoesAdapter movAdapter;
     //Alterar padrão de exibição
     private final DecimalFormat decimalFormat = new DecimalFormat("0.##");
-    //ResumoDAO
-    private final ResumoMensalDAO resumoMensalDAO = new ResumoMensalDAO();
-    //Resumo mensal
-    private final ResumoMensal resumoMensal = new ResumoMensal();
-    private Double receitaMensal = resumoMensal.getReceitaMensal(), despesaMensal = resumoMensal.getDespesaMensal(), saldoMensal;
+    private ResumoMensalDAO resumoMensalDAO = new ResumoMensalDAO();
+    //Contador
+    int i = 0;
+    private ProgressBar progressBarSaldo;
+    private ResumoMensal resumoMensal;
+    private TextView txtReceitaMensal;
+    private TextView txtDespesaMensal;
 
 
     @Override
@@ -65,6 +67,9 @@ public class MovimentacaoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_tarefa);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        txtDespesaMensal = findViewById(R.id.txtCustoMensal);
+        txtReceitaMensal = findViewById(R.id.txtReceitaMensal);
         //Instancia o adapter
         movAdapter = new MovimentacoesAdapter(listaMov, getApplicationContext());
         //Text que exibe o saldo final
@@ -73,11 +78,11 @@ public class MovimentacaoActivity extends AppCompatActivity {
         materialCalendarView = findViewById(R.id.materialCalendarMov);
         //Recycler
         rMov = findViewById(R.id.recyclerMov);
+        progressBarSaldo = findViewById(R.id.progressBarSaldo);
         //Ativa swipe
         swipe();
 
         materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
-
         });
 
     }
@@ -87,11 +92,15 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
     public void adicionarReceita(View view){
         Intent intentGanho = new Intent(this, AddGanhoActivity.class);
+        intentGanho.putExtra("ano", anoSel);
+        intentGanho.putExtra("mes", mesSel);
         startActivity(intentGanho);
     }
 
     public void adicionarDespesa(View view){
         Intent intentDespesa = new Intent(this, AddDespesaActivity.class);
+        intentDespesa.putExtra("ano", anoSel);
+        intentDespesa.putExtra("mes", mesSel);
         startActivity(intentDespesa);
     }
 
@@ -107,41 +116,6 @@ public class MovimentacaoActivity extends AppCompatActivity {
         recuperaSaldo();
     }
 
-    private void recuperaSaldoMensal(){
-
-        Handler handler = new Handler();
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica se o valor foi setado
-                receitaMensal = resumoMensal.getReceitaMensal();
-                //Verifica se o valor foi setado
-                despesaMensal = resumoMensal.getDespesaMensal();
-                //Verifica se o valor foi setado
-                alerta = movimentacoesDAO.getAlerta();
-
-                //Verifica se estão nulos
-                if (receitaMensal != null && despesaMensal != null) {
-                    //Caso não, subtrai saldo - despesa
-                    saldoMensal = receitaMensal - despesaMensal;
-                    resumoMensal.setSaldoMensal(saldoMensal);
-                    //Atualiza saldo
-                    resumoMensalDAO.atualizarSaldoMensal(resumoMensal);
-                    //Converte em String, adiciona máscara
-                    txtSaldo.setText("R$ " + decimalFormat.format(saldoMensal));
-                    Toast.makeText(MovimentacaoActivity.this, "Saldo " + saldoFinal, Toast.LENGTH_SHORT).show();
-                    //Remove repetição
-                    handler.removeCallbacks(this);
-                }else {
-                    handler.postDelayed(this, 1000);
-                    Toast.makeText(getApplicationContext(), "Null, " + receitaTotal, Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-    }
-
     private void recuperaSaldo(){
 
         Handler handler = new Handler();
@@ -149,6 +123,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
+     //           resumoMensal = resumoMensalDAO.getResumoMensal(materialCalendarView.getCurrentDate().getYear() + "/" + materialCalendarView.getCurrentDate().getMonth());
                 //Verifica se o valor foi setado
                 receitaTotal = movimentacoesDAO.getReceitaTotal();
                 //Verifica se o valor foi setado
@@ -158,18 +133,15 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
                 //Verifica se estão nulos
                 if (receitaTotal != null && despesaTotal != null) {
-                    //Caso não, subtrai saldo - despesa
+                    //Caso não, subtrai saldo - despesa totais e mensais
                     saldoFinal = receitaTotal - despesaTotal;
                     //Atualiza saldo
                     movimentacoesDAO.atualizarSaldo(saldoFinal);
                     //Converte em String, adiciona máscara
-                    txtSaldo.setText("R$ " + decimalFormat.format(saldoFinal));
-                    Toast.makeText(MovimentacaoActivity.this, "Saldo " + saldoFinal, Toast.LENGTH_SHORT).show();
                     //Remove repetição
                     handler.removeCallbacks(this);
                 }else {
                     handler.postDelayed(this, 1000);
-                    Toast.makeText(getApplicationContext(), "Null, " + receitaTotal, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -177,9 +149,6 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
 
     private void configurarCalendarView(){
-        /*materialCalendarView.state().edit()
-                .setMinimumDate(CalendarDay.from(2017, 1, 1))
-                .setMaximumDate(CalendarDay.from(2024, 1, 1));*/
 
         CharSequence[] meses = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"};
         materialCalendarView.setTitleMonths(meses);
@@ -189,59 +158,80 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
         anoSel = String.valueOf(materialCalendarView.getCurrentDate().getYear());
         mesSel = String.valueOf(materialCalendarView.getCurrentDate().getMonth());
-        diaSel = String.valueOf(materialCalendarView.getCurrentDate().getDay());
 
         //Se for menor que dez, adiciona zero
         if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
 
-        recuperarLista(anoSel, mesSel);
+        recuperarDadosMes(anoSel, mesSel);
+        Log.i("Logando", anoSel + "/" + mesSel);
 
+        //Quando alterado o mês
         materialCalendarView.setOnMonthChangedListener((widget, date) -> {
             anoSel = String.valueOf(date.getYear());
             //Talvez seja necessário adicionar +1
             mesSel = String.valueOf(date.getMonth());
-            diaSel = String.valueOf(date.getDay());
-
             //Se for menor que dez, adiciona zero
             if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
-            //Recupera os valores
-            recuperarLista(anoSel, mesSel);
-            //Recuperar saldo mensal aqui
-
-
-            Log.i("Logando", anoSel + "/" + mesSel);
+            //Recupera os valores mensais
+            recuperarDadosMes(anoSel, mesSel);
         });
     }
 
 
-    private void recuperarLista(String ano, String mes){
+    private void recuperarDadosMes(String ano, String mes){
         //Consulta lista
         listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes);
-      /*  if (resumoMensalDAO.getResumoMensal(ano, mes) != null) {
-            resumoMensal = resumoMensalDAO.getResumoMensal(ano, mes);
-        }*/
-
+        i=0;
         Handler handler = new Handler();
+        handler.removeCallbacks(this::configurarCalendarView);
         handler.postDelayed(new Runnable() {
-            int i = 0;
             @Override
             public void run() {
-                if (!listaMov.isEmpty()){
-                   /* resumoMensal.setAno(ano);
-                    resumoMensal.setMes(mes);
-                    resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
-                    resumoMensalDAO.setResumoMensal(resumoMensal);*/
-                    //Quando não está vazia significa que foi recebido os valores
-                    handler.removeCallbacks(this);
-                }else i++;
-                if (i > 5) {
-                    handler.removeCallbacks(this);
-                    Toast.makeText(MovimentacaoActivity.this, "Não há informações para este mês", Toast.LENGTH_SHORT).show();
+                //Verifica conexão com internet
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+                //Consulta lista
+                listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes);
+                if (!listaMov.isEmpty()){ //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
+                    //Puxa método que recupera saldo mensal com loading de 1seg
+                }else {
+                    Toast.makeText(MovimentacaoActivity.this, "Lista Vazia", Toast.LENGTH_SHORT).show();
                 }
-
+                recuperarSaldoMensal(ano, mes);
                 movAdapter.notifyDataSetChanged();
             }
         }, 100);
+    }
+
+    private void recuperarSaldoMensal(String ano, String mes){ //Método que controle o txtSaldo e retorno de itens
+        //Seta os textos como vazio e exibe loading
+        txtReceitaMensal.setText("");
+        txtDespesaMensal.setText("");
+        txtSaldo.setText("");
+        progressBarSaldo.setVisibility(View.VISIBLE);
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                resumoMensal = resumoMensalDAO.getResumoMensal(ano + "/" + mes);
+                if (resumoMensal.getReceitaMensal() != null) { //Quando não está nulo significa que foi recebido o valor
+                    if (resumoMensal.getAnoMes().equals(ano + "/" + mes)) { //Se data e ano do resumo forem igual à fornecida, irá retornar infos
+                        Log.i("Logando", "Resumo, saldo: " + resumoMensal.getSaldoMensal() + " ano " + ano + " mes " + mes);
+                        //Retorna as infos como desejado
+                        txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(resumoMensal.getReceitaMensal()));
+                        txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(resumoMensal.getDespesaMensal()));
+                        txtSaldo.setText("R$ " + decimalFormat.format(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal()));
+                        //Esconde loading
+                        progressBarSaldo.setVisibility(View.GONE);
+                    }else { //Significa que o Resumo do mes atual ainda não retornou
+                        Log.i("Logando", "Data resumo: " + resumoMensal.getAnoMes() + ", Data calendário: " + ano + "/" + mes);
+                        handler.postDelayed(this, 30); }
+                }else { //Significa que o valor ainda está nulo
+                    Log.i("Logando", "Resumo, valor nulo");
+                    handler.postDelayed(this, 30); }
+            }
+        }, 1000);
+
     }
 
     private void swipe(){
@@ -279,7 +269,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
         //Configurando AlertDialog
         alertDialogExcluir.setTitle("Excluir movimentação");
-        alertDialogExcluir.setMessage("Você tem certeza de que deseja excluir movimentação?\n Esta ação não pode ser revertida.");
+        alertDialogExcluir.setMessage("Você tem certeza de que deseja excluir movimentação?\nEsta ação não pode ser revertida.");
         alertDialogExcluir.setCancelable(false);
         //Configurando botões
         alertDialogExcluir.setPositiveButton("Excluir", (dialog, which) -> {
@@ -307,17 +297,26 @@ public class MovimentacaoActivity extends AppCompatActivity {
     private void atualizarSaldo(Movimentacao movimentacao){
 
     if (movimentacao.getTipo().equals("r")){
+            //Atualiza saldo geral
             Double receitaAtualizada = movimentacoesDAO.getReceitaTotal() - movimentacao.getValor();
             movimentacoesDAO.atualizarReceita(receitaAtualizada);
             saldoFinal -= movimentacao.getValor();
+            //Atualiza saldo mensal, PUXAR DATA DA MOVIMENTACAO PARA LOCALIZAR RESUMO CORRETO
+            resumoMensal.setReceitaMensal(resumoMensal.getReceitaMensal() - movimentacao.getValor());
+
         }else {
             Double despesaAtualizada = movimentacoesDAO.getDespesaTotal() - movimentacao.getValor();
             movimentacoesDAO.atualizarDespesa(despesaAtualizada);
             saldoFinal += movimentacao.getValor();
+            //Atualiza saldo mensal
+            resumoMensal.setDespesaMensal(resumoMensal.getDespesaMensal() - movimentacao.getValor());
         }
+        resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
+
+        resumoMensalDAO.setResumoMensal(resumoMensal);
 
         movimentacoesDAO.atualizarSaldo(saldoFinal);
-        txtSaldo.setText("R$ " + decimalFormat.format(saldoFinal));
 
+        recuperarSaldoMensal(anoSel, mesSel);
     }
 }

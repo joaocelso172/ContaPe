@@ -49,7 +49,6 @@ public class ResumoMensal {
         this.despesaMensal = despesaMensal;
     }
 
-    @Exclude
     public String getAnoMes() {
         return anoMes;
     }

@@ -1,13 +1,16 @@
 package com.example.aulafirebase;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -23,6 +26,13 @@ import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.Model.Usuario;
 import com.example.aulafirebase.helper.DateCustom;
 import com.google.android.material.textfield.TextInputEditText;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
+
+import java.util.Date;
+
+import br.com.sapereaude.maskedEditText.MaskedEditText;
 
 public class AddGanhoActivity extends AppCompatActivity {
 
@@ -33,6 +43,7 @@ public class AddGanhoActivity extends AppCompatActivity {
     private Button btnSalvarReceita;
     //Edit Text referente a campos
     private TextInputEditText edDataReceita, edDescReceita, edNomeReceita;
+    private MaskedEditText edHoraReceita;
     //EditText referente ao valor descrito
     private EditText edValorReceita;
     //Spinner contendo categorias
@@ -54,6 +65,10 @@ public class AddGanhoActivity extends AppCompatActivity {
     private Double saldoMensal;
     //Atributo que retorna true quando resumo está ok
     private Boolean resumoRecuperado = false;
+    private Bundle bundleData;
+    private String anoSel, mesSel;
+
+    private Boolean dataClicada = false;
 
 
     @Override
@@ -68,6 +83,7 @@ public class AddGanhoActivity extends AppCompatActivity {
         edNomeReceita = findViewById(R.id.edNomeGanho);
         edValorReceita = findViewById(R.id.edValorGanho);
         spinnerCategoriaReceita = findViewById(R.id.spinnerCatGanho);
+        edHoraReceita = findViewById(R.id.editHoraReceita);
 
         //Adapter para utilizar o spinner
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, categorias);
@@ -76,8 +92,68 @@ public class AddGanhoActivity extends AppCompatActivity {
         //Setando o Adapter ao Spinner
         spinnerCategoriaReceita.setAdapter(arrayAdapter);
 
-        //Preenche com a data atual, incluindo data
-        edDataReceita.setText( DateCustom.dataAtual() );
+        bundleData = getIntent().getExtras();
+        if( (!bundleData.getString("ano").equals(null)) && (!bundleData.getString("mes").equals(null)) ) {
+            anoSel = bundleData.getString("ano");
+            mesSel = bundleData.getString("mes");
+            edDataReceita.setText( "01" + "/" + mesSel + "/" + anoSel );
+        }else edDataReceita.setText( DateCustom.dataAtual() ); //Preenche com a data atual
+
+        //Preenche com a hora atual
+         edHoraReceita.setText(DateCustom.horaAtual());
+
+
+        edDataReceita.setOnTouchListener((v, event) -> {
+           if (!dataClicada){
+                dialogCalendario();
+            }else dataClicada = false;
+            return true;
+        });
+
+        edHoraReceita.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                edHoraReceita.setText("");
+                return false;
+            }
+        });
+
+        edHoraReceita.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                String[] hora;
+
+                hora = DateCustom.recuperarHora(edHoraReceita.getText().toString());
+
+                if ( (!hasFocus && edHoraReceita.getText().toString().equals(""))) edHoraReceita.setText(DateCustom.horaAtual());
+                if ((!hasFocus && hora.length > 0 && hora[0] != "")) {
+                    if (Integer.parseInt(hora[0]) >= 24 ){
+                        edHoraReceita.setError("A hora não pode ser superior a 24!");
+                        edHoraReceita.setText("");
+                    }else if ( !hasFocus && hora.length == 1 && hora[0] != ""){
+                        if (Integer.parseInt(hora[0]) < 10) hora[0] = "0" + hora[0];
+                        edHoraReceita.setText(hora[0] + ":" + "00");
+                    }else if ( !hasFocus && hora.length == 2 && hora[1] != ""){
+                        if (Integer.parseInt(hora[1]) >= 60 ){
+                            edHoraReceita.setError("O minuto não pode ser superior a 60!");
+                            edHoraReceita.setText("");
+                        }else if (Integer.parseInt(hora[1]) < 6) hora[1] = hora[1] + "0"; else if (Integer.parseInt(hora[1]) < 10) hora[1] = "0" + hora[1];
+                        edHoraReceita.setText(hora[0] + ":" + hora[1]);
+                    }
+                }
+
+
+            }
+        });
+
+
+        edDataReceita.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
 
         btnSalvarReceita.setOnClickListener(v -> salvarReceita());
 
@@ -93,8 +169,6 @@ public class AddGanhoActivity extends AppCompatActivity {
         //Seta valores
         //Receita Total
         Double receitaTotal = usuario.getReceitaTotal();
-        //Saldo antes da execução
-        Double saldoAtual = usuario.getSaldoDisponivel();
 
         //Se for true, salva receita
         if (validarCampos()){
@@ -108,7 +182,7 @@ public class AddGanhoActivity extends AppCompatActivity {
             //Setando valores de acordo com os campos
             receitaSalva.setValor(valor);
             receitaSalva.setDescTarefa(edDescReceita.getText().toString());
-            receitaSalva.setDataTarefa(edDataReceita.getText().toString());
+            receitaSalva.setDataTarefa(edDataReceita.getText().toString() + " - " + edHoraReceita.getText());
             receitaSalva.setCategoria(spinnerCategoriaReceita.getSelectedItem().toString());
             //Caso receita = 'r'; Caso Receita = 'd'.
             receitaSalva.setTipo("r");
@@ -118,7 +192,6 @@ public class AddGanhoActivity extends AppCompatActivity {
                 //Soma a receita total + o valor descrito
                 //Receita atualizada
                 Double receitaAtualizada = receitaTotal + valor;
-                saldoAtual -= receitaAtualizada;
                 //Verifica conexão do celular
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo networkInfo = cm.getActiveNetworkInfo();
@@ -131,7 +204,7 @@ public class AddGanhoActivity extends AppCompatActivity {
                         finish();
                 }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
             }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
-        }else Toast.makeText(this, "Preencha todos os campos para poder continuar", Toast.LENGTH_SHORT).show();
+        }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
 
 
@@ -168,6 +241,21 @@ public class AddGanhoActivity extends AppCompatActivity {
             Toast.makeText(this, "Categoria padrão selecionada", Toast.LENGTH_SHORT).show();
         }
 
+        String[] hora;
+
+        hora = DateCustom.recuperarHora(edHoraReceita.getText().toString());
+
+        if (edHoraReceita.getText().toString().isEmpty()){
+            edHoraReceita.setError("Preencha a hora da receita para continuar!");
+            return false;
+        }else if (Integer.parseInt(hora[0]) >= 24){
+            edHoraReceita.setError("A hora não pode ser superior a 24!");
+            return false;
+        }else if (Integer.parseInt(hora[1]) >= 60){
+            edHoraReceita.setError("O minuto não pode ser superior a 60!");
+            return false;
+        }
+
         //Caso estejam, retorna true, caso não, retornam false
         return true;
     }
@@ -193,10 +281,53 @@ public class AddGanhoActivity extends AppCompatActivity {
                     resumoRecuperado =  true;
                 }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
 
-                Log.i("Logando", "Status: " + resumoRecuperado);
             }
         });
 
         return resumoRecuperado;
+    }
+
+    private void dialogCalendario(){
+        dataClicada = true;
+        Dialog dialogoCalendario = new Dialog(this);
+
+        dialogoCalendario.setContentView(R.layout.calendario_selecao);
+        MaterialCalendarView materialCalendarViewReceita = dialogoCalendario.findViewById(R.id.calendarioAddMovimentacao);
+        Button btnConfirmarData = dialogoCalendario.findViewById(R.id.btnConfirmarCalendario);
+
+        CharSequence[] meses = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"};
+        materialCalendarViewReceita.setTitleMonths(meses);
+
+        CharSequence[] semanas = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"};
+        materialCalendarViewReceita.setWeekDayLabels(semanas);
+
+        materialCalendarViewReceita.setOnDateChangedListener(new OnDateSelectedListener() {
+            @Override
+            public void onDateSelected(@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) {
+                String anoSel = String.valueOf( date.getYear() );
+                String mesSel = String.valueOf( date.getMonth() );
+                String diaSel = String.valueOf( date.getDay() );
+
+                //Se for menor que dez, adiciona zero
+                if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
+                if (Integer.parseInt(diaSel) < 10) diaSel = "0" + Integer.parseInt(diaSel);
+
+
+                edDataReceita.setText(diaSel + "/" + mesSel + "/" + anoSel);
+
+            }
+        });
+
+        btnConfirmarData.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogoCalendario.dismiss();
+            }
+        });
+
+
+        dialogoCalendario.show();
+
+
     }
 }
