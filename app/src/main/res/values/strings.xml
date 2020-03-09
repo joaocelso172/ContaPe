@@ -4,6 +4,7 @@
     <string name="title_activity_tarefa">Movimentações Individuais</string>
     <string name="title_activity_add_movimentacao">Adicionar Receita</string>
     <string name="title_activity_add_despesa">Adicionar Receita</string>
+    <string name="title_activity_grupo">GrupoActivity</string>
 
     <!-- TODO: Remove or change this placeholder text -->
 </resources>

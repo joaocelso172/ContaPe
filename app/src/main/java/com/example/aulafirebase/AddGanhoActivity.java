@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -18,9 +19,11 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.example.aulafirebase.DAL.GrupoDAO;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.ResumoMensalDAO;
 import com.example.aulafirebase.DAL.UsuariosDAO;
+import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.Model.Usuario;
@@ -70,6 +73,10 @@ public class AddGanhoActivity extends AppCompatActivity {
 
     private Boolean dataClicada = false;
 
+    private Grupo grupo = null;
+    private GrupoDAO grupoDAO = new GrupoDAO();
+    private Grupo grupoAtualizado;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +105,11 @@ public class AddGanhoActivity extends AppCompatActivity {
             mesSel = bundleData.getString("mes");
             edDataReceita.setText( "01" + "/" + mesSel + "/" + anoSel );
         }else edDataReceita.setText( DateCustom.dataAtual() ); //Preenche com a data atual
+
+        if (recuperarBundle()){
+            grupoAtualizado = grupoDAO.getGrupo(grupo);
+            Log.i("Grupo AddGanho", grupo.getNomeGrupo());
+        }else Log.i("Grupo AddGanho", "null");
 
         //Preenche com a hora atual
          edHoraReceita.setText(DateCustom.horaAtual());
@@ -155,7 +167,10 @@ public class AddGanhoActivity extends AppCompatActivity {
         });
 
 
-        btnSalvarReceita.setOnClickListener(v -> salvarReceita());
+        btnSalvarReceita.setOnClickListener(v -> {
+            if (grupo == null) salvarReceita();
+            else salvarReceitaGrupo();
+        });
 
 
     }
@@ -329,5 +344,87 @@ public class AddGanhoActivity extends AppCompatActivity {
         dialogoCalendario.show();
 
 
+    }
+
+    public Boolean recuperarBundle(){
+        Intent intent = getIntent();
+        grupo = (Grupo) intent.getSerializableExtra("grupo");
+        if (grupo == null) return false;
+
+        return true;
+    }
+
+    private void salvarReceitaGrupo(){
+        //Objeto de movimentacao
+        Movimentacao receitaSalva = new Movimentacao();
+
+        //Recupera grupo antes de salvar
+        grupoAtualizado = grupoDAO.getGrupo(grupo);
+        //Seta valores
+        //Receita Total
+        Double receitaTotal = grupoAtualizado.getReceitaGrupo();
+
+        //Se for true, salva receita
+        if (validarCampos()){
+            String dataMov;
+            //Trata campo data para agrupar em ano, mes e dia
+            dataMov = DateCustom.firebaseFormatDate(edDataReceita.getText().toString());
+            //Colocando o valor em uma varíavel, já que será usado múltiplas vezes
+            Double valor = Double.parseDouble(edValorReceita.getText().toString());
+            //Chama método para recuperar resumo mensal
+            atualizarOuCriarResumoMensalGrupo(dataMov, valor);
+            //Setando valores de acordo com os campos
+            receitaSalva.setValor(valor);
+            receitaSalva.setDescTarefa(edDescReceita.getText().toString());
+            receitaSalva.setDataTarefa(edDataReceita.getText().toString() + " - " + edHoraReceita.getText());
+            receitaSalva.setCategoria(spinnerCategoriaReceita.getSelectedItem().toString());
+            //Caso receita = 'r'; Caso Receita = 'd'.
+            receitaSalva.setTipo("r");
+
+            //Se receita não for nula significa que algo retornou
+            if (receitaTotal != null) {
+                //Soma a receita total + o valor descrito
+                //Receita atualizada
+                Double receitaAtualizada = receitaTotal + valor;
+                //Verifica conexão do celular
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+
+                //Salva a receita, atualiza atributo receitaGeral e saldoGeral desde que tenha internet
+                if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
+                    receitasDAO.salvarMovimentacaoGrupo(receitaSalva, grupoAtualizado);
+                    receitasDAO.atualizarReceitaGrupo(receitaAtualizada, grupoAtualizado);
+                    Toast.makeText(this, "Receita salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
+                    finish();
+                }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
+            }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
+        }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
+    }
+
+    private Boolean atualizarOuCriarResumoMensalGrupo(String dataMovimentacao, Double valorReceita){
+        Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                //Verifica se há resumo, caso não haja cria e retorna
+                resumoMensal = resumoMensalDAO.getOrSubResumoMensalGrupo(dataMovimentacao, grupoAtualizado);
+                //Verifica se há algo no resumoMensal a cada 300 milisegundos
+                handler.postDelayed(this, 300);
+                //Se não for nulo, significa que algo retornou
+                if (resumoMensal.getReceitaMensal() != null) {
+                    //Seta informações
+                    receitaMensal = resumoMensal.getReceitaMensal();
+                    resumoMensal.setReceitaMensal(receitaMensal + valorReceita);
+                    //Método de saldo, deve ser sempre igual
+                    resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
+                    resumoMensalDAO.setResumoMensalGrupo(resumoMensal, dataMovimentacao, grupoAtualizado);
+                    handler.removeCallbacks(this);
+                    resumoRecuperado =  true;
+                }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
+
+            }
+        });
+
+        return resumoRecuperado;
     }
 }

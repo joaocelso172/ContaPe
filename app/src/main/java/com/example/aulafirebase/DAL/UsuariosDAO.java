@@ -4,7 +4,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Usuario;
+import com.example.aulafirebase.Model.UsuarioGrupo;
 import com.example.aulafirebase.helper.Base64Custom;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -12,6 +14,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class UsuariosDAO {
     //Autentificacao
@@ -78,6 +83,9 @@ public class UsuariosDAO {
 
         return usuario;
     }
+
+
+
 }
 
 

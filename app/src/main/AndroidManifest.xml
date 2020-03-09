@@ -13,7 +13,15 @@
         android:roundIcon="@drawable/primeirologo"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".AddGanhoActivity"></activity>
+        <activity android:name=".ActivityGrupos.AddIntegranteGrupo"></activity>
+        <activity android:name=".ListarGruposActivity" />
+        <activity
+            android:name=".GrupoActivity"
+            android:label="@string/title_activity_grupo"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".EnviarConviteActivity" />
+        <activity android:name=".AddGrupoActivity" />
+        <activity android:name=".AddGanhoActivity" />
         <activity android:name=".AddDespesaActivity" />
         <activity
             android:name=".MovimentacaoActivity"
