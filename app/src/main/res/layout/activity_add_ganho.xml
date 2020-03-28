@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".AddGanhoActivity">
+    tools:context=".Controller.ActivityMovimentacao.AddGanhoActivity">
 
     <Button
         android:id="@+id/btnSalvarGanho"
@@ -45,34 +45,16 @@
         app:layout_constraintTop_toBottomOf="@+id/tilData" />
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/textInputLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/edValorGanho">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edNomeGanho"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Nome da Receita" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/textInputLayout2"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:hint="Descrição da Receita"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayout">
+        mask:layout_constraintTop_toBottomOf="@+id/spinnerAtribuido">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edDescGanho"
@@ -120,6 +102,32 @@
             app:keep_hint="true"
             mask:allowed_chars="1234567890"
             mask:mask="##:##" />
+
     </com.google.android.material.textfield.TextInputLayout>
+
+    <Spinner
+        android:id="@+id/spinnerAtribuido"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="16dp"
+        mask:layout_constraintEnd_toEndOf="parent"
+        mask:layout_constraintHorizontal_bias="0.0"
+        mask:layout_constraintStart_toStartOf="parent"
+        mask:layout_constraintTop_toBottomOf="@+id/txtRecAtr" />
+
+    <TextView
+        android:id="@+id/txtRecAtr"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:text="Responsável pela Receita"
+        android:textStyle="bold"
+        mask:layout_constraintEnd_toEndOf="parent"
+        mask:layout_constraintHorizontal_bias="0.035"
+        mask:layout_constraintStart_toStartOf="parent"
+        mask:layout_constraintTop_toBottomOf="@+id/edValorGanho" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,4 +1,4 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityMovimentacao;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,23 +17,28 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.GrupoDAO;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.ResumoMensalDAO;
 import com.example.aulafirebase.DAL.UsuariosDAO;
 import com.example.aulafirebase.Model.Grupo;
+import com.example.aulafirebase.Model.GrupoUsuario;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.Model.Usuario;
+import com.example.aulafirebase.R;
 import com.example.aulafirebase.helper.DateCustom;
 import com.google.android.material.textfield.TextInputEditText;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 import br.com.sapereaude.maskedEditText.MaskedEditText;
 
@@ -45,12 +50,12 @@ public class AddGanhoActivity extends AppCompatActivity {
     //Botão para salvar receita
     private Button btnSalvarReceita;
     //Edit Text referente a campos
-    private TextInputEditText edDataReceita, edDescReceita, edNomeReceita;
+    private TextInputEditText edDataReceita, edDescReceita;
     private MaskedEditText edHoraReceita;
     //EditText referente ao valor descrito
     private EditText edValorReceita;
     //Spinner contendo categorias
-    private Spinner spinnerCategoriaReceita;
+    private Spinner spinnerCategoriaReceita, spinnerAtribuido;
     //Objeto de acesso ao nó de movimentacoes
     private final MovimentacoesDAO receitasDAO = new MovimentacoesDAO();
     //Objeto de acesso aos resumos do nó de movimentacoes
@@ -73,9 +78,13 @@ public class AddGanhoActivity extends AppCompatActivity {
 
     private Boolean dataClicada = false;
 
-    private Grupo grupo = null;
+    private TextView txtMov;
+
+    private Grupo grupoRecebido = null;
     private GrupoDAO grupoDAO = new GrupoDAO();
     private Grupo grupoAtualizado;
+    private ArrayAdapter<String> arrayAdapterAtribuido;
+    private List<String> listEmailIntegrantes = new ArrayList<>();
 
 
     @Override
@@ -87,10 +96,11 @@ public class AddGanhoActivity extends AppCompatActivity {
         btnSalvarReceita = findViewById(R.id.btnSalvarGanho);
         edDataReceita = findViewById(R.id.edDataGanho);
         edDescReceita = findViewById(R.id.edDescGanho);
-        edNomeReceita = findViewById(R.id.edNomeGanho);
         edValorReceita = findViewById(R.id.edValorGanho);
         spinnerCategoriaReceita = findViewById(R.id.spinnerCatGanho);
         edHoraReceita = findViewById(R.id.editHoraReceita);
+        spinnerAtribuido = findViewById(R.id.spinnerAtribuido);
+        txtMov = findViewById(R.id.txtRecAtr);
 
         //Adapter para utilizar o spinner
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, categorias);
@@ -105,11 +115,6 @@ public class AddGanhoActivity extends AppCompatActivity {
             mesSel = bundleData.getString("mes");
             edDataReceita.setText( "01" + "/" + mesSel + "/" + anoSel );
         }else edDataReceita.setText( DateCustom.dataAtual() ); //Preenche com a data atual
-
-        if (recuperarBundle()){
-            grupoAtualizado = grupoDAO.getGrupo(grupo);
-            Log.i("Grupo AddGanho", grupo.getNomeGrupo());
-        }else Log.i("Grupo AddGanho", "null");
 
         //Preenche com a hora atual
          edHoraReceita.setText(DateCustom.horaAtual());
@@ -168,58 +173,30 @@ public class AddGanhoActivity extends AppCompatActivity {
 
 
         btnSalvarReceita.setOnClickListener(v -> {
-            if (grupo == null) salvarReceita();
-            else salvarReceitaGrupo();
+            if (recuperarBundle()) {
+                grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
+                grupoAtualizado.setGrupoId(grupoRecebido.getGrupoId());
+            }
+            else grupoAtualizado = null;
+
+            salvarReceita(grupoAtualizado);
         });
 
 
     }
 
-        private void salvarReceita(){
-        //Objeto de movimentacao
-        Movimentacao receitaSalva = new Movimentacao();
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (recuperarBundle()){
+            grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
+            grupoAtualizado.setGrupoId(grupoRecebido.getGrupoId());
+            recuperarUsuariosGrupo();
+        }else {
+            spinnerAtribuido.setVisibility(View.GONE);
+            txtMov.setVisibility(View.GONE);
+        }
 
-        //Recupera usuário antes de salvar
-        usuario = usuariosDAO.getUsuario();
-        //Seta valores
-        //Receita Total
-        Double receitaTotal = usuario.getReceitaTotal();
-
-        //Se for true, salva receita
-        if (validarCampos()){
-            String dataMov;
-            //Trata campo data para agrupar em ano, mes e dia
-            dataMov = DateCustom.firebaseFormatDate(edDataReceita.getText().toString());
-            //Colocando o valor em uma varíavel, já que será usado múltiplas vezes
-            Double valor = Double.parseDouble(edValorReceita.getText().toString());
-            //Chama método para recuperar resumo mensal
-            atualizarOuCriarResumoMensal(dataMov, valor);
-            //Setando valores de acordo com os campos
-            receitaSalva.setValor(valor);
-            receitaSalva.setDescTarefa(edDescReceita.getText().toString());
-            receitaSalva.setDataTarefa(edDataReceita.getText().toString() + " - " + edHoraReceita.getText());
-            receitaSalva.setCategoria(spinnerCategoriaReceita.getSelectedItem().toString());
-            //Caso receita = 'r'; Caso Receita = 'd'.
-            receitaSalva.setTipo("r");
-
-            //Se receita não for nula significa que algo retornou
-            if (receitaTotal != null) {
-                //Soma a receita total + o valor descrito
-                //Receita atualizada
-                Double receitaAtualizada = receitaTotal + valor;
-                //Verifica conexão do celular
-                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-
-                //Salva a receita, atualiza atributo receitaGeral e saldoGeral desde que tenha internet
-                if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
-                        receitasDAO.salvarMovimentacao(receitaSalva);
-                        receitasDAO.atualizarReceita(receitaAtualizada);
-                        Toast.makeText(this, "Receita salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
-                        finish();
-                }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
-            }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
-        }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
 
 
@@ -228,20 +205,12 @@ public class AddGanhoActivity extends AppCompatActivity {
         //Valida se campos estão preenchidos
         if (edValorReceita.getText().toString().isEmpty()){
             edValorReceita.setError("Preencha o valor para continuar!");
-            if (edNomeReceita.getText().toString().isEmpty()) edNomeReceita.setError("Preencha o nome da receita para continuar!");
                 if (edDescReceita.getText().toString().isEmpty())edDescReceita.setError("Preencha a descrição para continuar!");
                     if (edDataReceita.getText().toString().isEmpty()) edDataReceita.setError("Preencha a data para continuar!");
 
             return false;
         }
 
-        if (edNomeReceita.getText().toString().isEmpty()){
-            edNomeReceita.setError("Preencha o nome da receita para continuar!");
-            if (edDescReceita.getText().toString().isEmpty())edDescReceita.setError("Preencha a descrição para continuar!");
-                if (edDataReceita.getText().toString().isEmpty()) edDataReceita.setError("Preencha a data para continuar!");
-
-                return false;
-        }
 
         if (edDescReceita.getText().toString().isEmpty()){
             edDescReceita.setError("Preencha a descrição para continuar!");
@@ -280,21 +249,23 @@ public class AddGanhoActivity extends AppCompatActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                //Verifica se há resumo, caso não haja cria e retorna
-                resumoMensal = resumoMensalDAO.getOrSubResumoMensal(dataMovimentacao);
-                //Verifica se há algo no resumoMensal a cada 300 milisegundos
-                handler.postDelayed(this, 300);
-                //Se não for nulo, significa que algo retornou
-                if (resumoMensal.getReceitaMensal() != null) {
-                    //Seta informações
-                    receitaMensal = resumoMensal.getReceitaMensal();
-                    resumoMensal.setReceitaMensal(receitaMensal + valorReceita);
-                    //Método de saldo, deve ser sempre igual
-                    resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
-                    resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao);
-                    handler.removeCallbacks(this);
-                    resumoRecuperado =  true;
-                }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
+                    //Verifica se há resumo, caso não haja cria e retorna
+                    resumoMensal = resumoMensalDAO.getOrSubResumoMensal(dataMovimentacao);
+                    //Verifica se há algo no resumoMensal a cada 300 milisegundos
+                    handler.postDelayed(this, 300);
+                    //Se não for nulo, significa que algo retornou
+                    if (resumoMensal.getReceitaMensal() != null) {
+                        //Seta informações
+                        receitaMensal = resumoMensal.getReceitaMensal();
+                        resumoMensal.setReceitaMensal(receitaMensal + valorReceita);
+                        //Método de saldo, deve ser sempre igual
+                        resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
+                        resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao);
+                        handler.removeCallbacks(this);
+                        resumoRecuperado = true;
+                    } else
+                        resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
+
 
             }
         });
@@ -347,22 +318,33 @@ public class AddGanhoActivity extends AppCompatActivity {
     }
 
     public Boolean recuperarBundle(){
+        //grupoRecebido = null;
         Intent intent = getIntent();
-        grupo = (Grupo) intent.getSerializableExtra("grupo");
-        if (grupo == null) return false;
+        grupoRecebido = (Grupo) intent.getSerializableExtra("grupo");
+        if (grupoRecebido == null) return false;
 
         return true;
     }
 
-    private void salvarReceitaGrupo(){
+    private void salvarReceita(Grupo grupo){
         //Objeto de movimentacao
         Movimentacao receitaSalva = new Movimentacao();
 
-        //Recupera grupo antes de salvar
-        grupoAtualizado = grupoDAO.getGrupo(grupo);
-        //Seta valores
-        //Receita Total
-        Double receitaTotal = grupoAtualizado.getReceitaGrupo();
+        Double receitaTotal = null;
+
+        if (grupo == null){ //Se for nulo significa que é um usuário
+            //Recupera usuário antes de salvar
+            usuario = usuariosDAO.getUsuario();
+            //Seta valores
+            //Receita Total
+            receitaTotal = usuario.getReceitaTotal();
+        } else if (grupo != null){ //Se não for nulo significa que é um grupoRecebido
+            //Recupera o grupo antes de salvar
+            grupoAtualizado = grupoDAO.getGrupo(grupo);
+            //Seta valores
+            //Receita Total
+            receitaTotal = grupoAtualizado.getReceitaGrupo();
+        }
 
         //Se for true, salva receita
         if (validarCampos()){
@@ -372,12 +354,14 @@ public class AddGanhoActivity extends AppCompatActivity {
             //Colocando o valor em uma varíavel, já que será usado múltiplas vezes
             Double valor = Double.parseDouble(edValorReceita.getText().toString());
             //Chama método para recuperar resumo mensal
-            atualizarOuCriarResumoMensalGrupo(dataMov, valor);
+            if (grupo == null) atualizarOuCriarResumoMensal(dataMov, valor);
+            else if (grupo != null) atualizarOuCriarResumoMensal(dataMov, valor, grupo);
             //Setando valores de acordo com os campos
             receitaSalva.setValor(valor);
             receitaSalva.setDescTarefa(edDescReceita.getText().toString());
             receitaSalva.setDataTarefa(edDataReceita.getText().toString() + " - " + edHoraReceita.getText());
             receitaSalva.setCategoria(spinnerCategoriaReceita.getSelectedItem().toString());
+            if (spinnerAtribuido.getSelectedItem() != null) receitaSalva.setAtribuicao(spinnerAtribuido.getSelectedItem().toString());
             //Caso receita = 'r'; Caso Receita = 'd'.
             receitaSalva.setTipo("r");
 
@@ -392,22 +376,30 @@ public class AddGanhoActivity extends AppCompatActivity {
 
                 //Salva a receita, atualiza atributo receitaGeral e saldoGeral desde que tenha internet
                 if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
-                    receitasDAO.salvarMovimentacaoGrupo(receitaSalva, grupoAtualizado);
-                    receitasDAO.atualizarReceitaGrupo(receitaAtualizada, grupoAtualizado);
+                    if (grupo == null){
+                        receitasDAO.salvarMovimentacao(receitaSalva);
+                        receitasDAO.atualizarReceita(receitaAtualizada);
+                    }
+                    else if (grupo != null){
+                        receitasDAO.salvarMovimentacao(receitaSalva, grupoAtualizado);
+                        receitasDAO.atualizarReceita(receitaAtualizada, grupoAtualizado);
+                    }
+
                     Toast.makeText(this, "Receita salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
                     finish();
+
                 }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
             }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
         }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
 
-    private Boolean atualizarOuCriarResumoMensalGrupo(String dataMovimentacao, Double valorReceita){
+    private Boolean atualizarOuCriarResumoMensal(String dataMovimentacao, Double valorReceita, Grupo grupo){
         Handler handler = new Handler();
         handler.post(new Runnable() {
             @Override
             public void run() {
                 //Verifica se há resumo, caso não haja cria e retorna
-                resumoMensal = resumoMensalDAO.getOrSubResumoMensalGrupo(dataMovimentacao, grupoAtualizado);
+                resumoMensal = resumoMensalDAO.getOrSubResumoMensal(dataMovimentacao, grupo);
                 //Verifica se há algo no resumoMensal a cada 300 milisegundos
                 handler.postDelayed(this, 300);
                 //Se não for nulo, significa que algo retornou
@@ -417,7 +409,8 @@ public class AddGanhoActivity extends AppCompatActivity {
                     resumoMensal.setReceitaMensal(receitaMensal + valorReceita);
                     //Método de saldo, deve ser sempre igual
                     resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
-                    resumoMensalDAO.setResumoMensalGrupo(resumoMensal, dataMovimentacao, grupoAtualizado);
+                    resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao, grupoAtualizado);
+//                    resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao, grupoAtualizado);
                     handler.removeCallbacks(this);
                     resumoRecuperado =  true;
                 }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
@@ -427,4 +420,30 @@ public class AddGanhoActivity extends AppCompatActivity {
 
         return resumoRecuperado;
     }
+
+    private void recuperarUsuariosGrupo (){
+
+        txtMov.setVisibility(View.VISIBLE);
+
+        listEmailIntegrantes.add(FirebaseConfig.getFirebaseAuth().getCurrentUser().getEmail());
+
+        arrayAdapterAtribuido = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listEmailIntegrantes);
+        arrayAdapterAtribuido.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        spinnerAtribuido.setAdapter(arrayAdapterAtribuido);
+
+        grupoDAO.retornarIntegrantes(grupoAtualizado, listEmailIntegrantes, arrayAdapterAtribuido);
+
+
+    }
+
+    public void notifyIntegrantesGrupo (/*List<GrupoUsuario> grupoUsuarioList, View view*/){
+
+
+      /*  ArrayAdapter<GrupoUsuario> arrayAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, grupoUsuarioList);
+        arrayAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);*/
+
+
+
+    }
+
 }

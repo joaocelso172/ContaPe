@@ -1,7 +1,8 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityLogin;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import android.app.Dialog;
 import android.content.Intent;
@@ -14,10 +15,12 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.example.aulafirebase.Controller.ActivityMovimentacao.MovimentacaoActivity;
 import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.UsuariosDAO;
 import com.example.aulafirebase.Model.Usuario;
+import com.example.aulafirebase.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -25,8 +28,9 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo;
 
-import static com.example.aulafirebase.LoginGoogle.GOOGLE_SIGN;
+import static com.example.aulafirebase.Controller.ActivityLogin.LoginGoogle.GOOGLE_SIGN;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -62,6 +66,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        Toolbar toolbar = findViewById(R.id.toolbarLogin);
 
         btnMov = findViewById(R.id.btnMov);
         btnFazerLogin = findViewById(R.id.btnLogin);
@@ -205,7 +210,17 @@ public class LoginActivity extends AppCompatActivity {
                         if (usuariosDAO.validateOrSubUsuario()) {
                             handler.removeCallbacks(this);
                             Toast.makeText(LoginActivity.this, "Logado com sucesso! Redirecionando...", Toast.LENGTH_SHORT).show();
-                            Log.i("Logando", mUser.getEmail());
+
+                            String displayName = mUser.getDisplayName();
+
+                            for (UserInfo userInfo : mUser.getProviderData()) {
+                                 if (displayName == null && userInfo.getDisplayName() != null) {
+                                    displayName = userInfo.getDisplayName();
+
+                                }
+                            }
+
+                            Log.i("Logando", mUser.getEmail() + ", nome: " + displayName);
 
                           //De acordo com o contador determina velocidade do loading da proxima tela
                             if (i < 7) {
@@ -227,11 +242,11 @@ public class LoginActivity extends AppCompatActivity {
                         i++;
                         if (i == 10) {
                             Toast.makeText(getApplicationContext(), "Conexão lenta... Pode ser mais demorado o carregamento...", Toast.LENGTH_SHORT).show();
-                        } else if (i >= 75) {
+                        } /*else if (i >= 75) {
                             handler.removeCallbacks(this);
                             Toast.makeText(LoginActivity.this, "Houve uma falha durante o login. Reinicie o aplicativo.", Toast.LENGTH_SHORT).show();
                             finish();
-                        }
+                        }*/
                     }
 
                 }

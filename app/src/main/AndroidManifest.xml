@@ -13,24 +13,25 @@
         android:roundIcon="@drawable/primeirologo"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ActivityGrupos.AddIntegranteGrupo"></activity>
-        <activity android:name=".ListarGruposActivity" />
+        <activity android:name=".Controller.ActivityGrupos.AddIntegranteGrupo"></activity>
+        <activity android:name=".Controller.ActivityGrupos.ListarGruposActivity" />
         <activity
-            android:name=".GrupoActivity"
+            android:name=".Controller.ActivityGrupos.GrupoActivity"
             android:label="@string/title_activity_grupo"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".EnviarConviteActivity" />
-        <activity android:name=".AddGrupoActivity" />
-        <activity android:name=".AddGanhoActivity" />
-        <activity android:name=".AddDespesaActivity" />
+        <activity android:name=".Controller.ActivityGrupos.AddGrupoActivity" />
+        <activity android:name=".Controller.ActivityMovimentacao.AddGanhoActivity" />
+        <activity android:name=".Controller.ActivityMovimentacao.AddDespesaActivity" />
         <activity
-            android:name=".MovimentacaoActivity"
+            android:name=".Controller.ActivityMovimentacao.MovimentacaoActivity"
             android:label="@string/title_activity_tarefa"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".LoginActivity">
+        <activity
+            android:name=".Controller.ActivityLogin.LoginActivity"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

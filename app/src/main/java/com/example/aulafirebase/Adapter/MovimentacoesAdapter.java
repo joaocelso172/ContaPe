@@ -47,14 +47,30 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
                 holder.txtCat.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
                 holder.txtDesc.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
                 holder.txtValor.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+                holder.txtResponsavelAtribuido.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
                 holder.txtValor.setText("  R$ " + decimalFormat.format(movimentacao.getValor()));
+                holder.txtParcela.setTextColor(context.getResources().getColor(R.color.colorPrimaryDark));
+                if (movimentacao.getAtribuicao() != null) {
+                    holder.txtResponsavelAtribuido.setText("Contribuição de: " + movimentacao.getAtribuicao());
+                    holder.txtResponsavelAtribuido.setVisibility(View.VISIBLE);
+                }
             } else {
                 holder.txtCat.setTextColor(context.getResources().getColor(R.color.colorAccent));
                 holder.txtDesc.setTextColor(context.getResources().getColor(R.color.colorAccent));
                 holder.txtValor.setTextColor(context.getResources().getColor(R.color.colorAccent));
+                holder.txtResponsavelAtribuido.setTextColor(context.getResources().getColor(R.color.colorAccent));
                 holder.txtValor.setText("- R$ " + decimalFormat.format(movimentacao.getValor()));
+                holder.txtParcela.setTextColor(context.getResources().getColor(R.color.colorAccent));
+                if (movimentacao.getAtribuicao() != null) {
+                    holder.txtResponsavelAtribuido.setText("Responsável: " + movimentacao.getAtribuicao());
+                    holder.txtResponsavelAtribuido.setVisibility(View.VISIBLE);
+                }
             }
 
+            if (movimentacao.isParcelado() != null && movimentacao.isParcelado()) {
+                holder.txtParcela.setText("Parcela " + movimentacao.getParcelaAtual() + " do total de " + movimentacao.getParcelaTotal());
+                holder.txtParcela.setVisibility(View.VISIBLE);
+            }
 
 
     }
@@ -68,14 +84,18 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
     public class MyViewHolder extends RecyclerView.ViewHolder {
 
         final TextView txtCat;
+        final TextView txtParcela;
         final TextView txtDesc;
         final TextView txtValor;
+        final TextView txtResponsavelAtribuido;
 
         MyViewHolder(@NonNull View itemView) {
             super(itemView);
             txtCat = itemView.findViewById(R.id.txtNomeTarefa);
             txtDesc = itemView.findViewById(R.id.txtDescTarefa);
             txtValor = itemView.findViewById(R.id.txtValor);
+            txtResponsavelAtribuido = itemView.findViewById(R.id.txtResponsavelMov);
+            txtParcela = itemView.findViewById(R.id.txtParcelaMov);
 
         }
     }

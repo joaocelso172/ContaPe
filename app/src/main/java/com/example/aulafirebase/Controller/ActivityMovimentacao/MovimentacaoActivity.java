@@ -1,18 +1,20 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityMovimentacao;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 
 import com.example.aulafirebase.Adapter.MovimentacoesAdapter;
-import com.example.aulafirebase.DAL.GrupoDAO;
+import com.example.aulafirebase.BundleRecuperado;
+import com.example.aulafirebase.Controller.ActivityGrupos.AddGrupoActivity;
+import com.example.aulafirebase.Controller.ActivityGrupos.AddIntegranteGrupo;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.ResumoMensalDAO;
 import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
+import com.example.aulafirebase.MovimentacaoListener;
+import com.example.aulafirebase.R;
+import com.example.aulafirebase.RecuperaBundle;
 import com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import androidx.annotation.NonNull;
@@ -25,15 +27,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MovimentacaoActivity extends AppCompatActivity {
+public class MovimentacaoActivity extends AppCompatActivity implements RecuperaBundle, BundleRecuperado, MovimentacaoListener {
 
     //Calendario
     private MaterialCalendarView materialCalendarView;
@@ -41,7 +43,6 @@ public class MovimentacaoActivity extends AppCompatActivity {
     //Variaveis de retorno
     private Double receitaTotal = movimentacoesDAO.getReceitaTotal(), despesaTotal = movimentacoesDAO.getDespesaTotal()
     , saldoFinal, alerta = movimentacoesDAO.getAlerta();
-    private TextView txtSaldo;
     //Recycler mov
     private RecyclerView rMov;
     //Ano, mes e dia
@@ -57,20 +58,19 @@ public class MovimentacaoActivity extends AppCompatActivity {
     private ResumoMensalDAO resumoMensalDAO = new ResumoMensalDAO();
     //Contador
     int i = 0;
-    private ProgressBar progressBarSaldo;
     private ResumoMensal resumoMensal;
-    private TextView txtReceitaMensal;
-    private TextView txtDespesaMensal;
 
     private Grupo grupoUsuario;
 
-    private GrupoDAO grupoDAO = new GrupoDAO();
+    private ImageButton imgBtnAddUsuario;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tarefa);
         Toolbar toolbar = findViewById(R.id.toolbar);
+
 
         toolbar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -79,26 +79,30 @@ public class MovimentacaoActivity extends AppCompatActivity {
             }
         });
 
-        if (!recuperarBundle()) {
+        if (!recuperaBundle()) {
             toolbar.setTitle("Movimentações Individuais");
         }else {
             toolbar.setTitle(grupoUsuario.getNomeGrupo());
         }
 
+        imgBtnAddUsuario = findViewById(R.id.imgBtnAddPessoa);
 
-        txtDespesaMensal = findViewById(R.id.txtCustoMensal);
-        txtReceitaMensal = findViewById(R.id.txtReceitaMensal);
         //Instancia o adapter
         movAdapter = new MovimentacoesAdapter(listaMov, getApplicationContext());
-        //Text que exibe o saldo final
-        txtSaldo = findViewById(R.id.txtSaldo);
+
         //Calendário
         materialCalendarView = findViewById(R.id.materialCalendarMov);
         //Recycler
         rMov = findViewById(R.id.recyclerMov);
-        progressBarSaldo = findViewById(R.id.progressBarSaldo);
 
         materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
+        });
+
+        imgBtnAddUsuario.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                enviarBundle(0);
+            }
         });
 
     }
@@ -109,7 +113,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
         Intent intentGanho = new Intent(this, AddGanhoActivity.class);
         intentGanho.putExtra("ano", anoSel);
         intentGanho.putExtra("mes", mesSel);
-        if (recuperarBundle()) intentGanho.putExtra("grupo", grupoUsuario);
+        if (recuperaBundle()) intentGanho.putExtra("grupo", grupoUsuario);
         startActivity(intentGanho);
     }
 
@@ -118,7 +122,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
         Intent intentDespesa = new Intent(this, AddDespesaActivity.class);
         intentDespesa.putExtra("ano", anoSel);
         intentDespesa.putExtra("mes", mesSel);
-        if (recuperarBundle()) intentDespesa.putExtra("grupo", grupoUsuario);
+        if (recuperaBundle()) intentDespesa.putExtra("grupo", grupoUsuario);
         startActivity(intentDespesa);
     }
 
@@ -126,8 +130,8 @@ public class MovimentacaoActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-
-        if (!recuperarBundle()) {
+        if (!recuperaBundle()) {
+            imgBtnAddUsuario.setVisibility(View.GONE );
             //Ativa swipe
             swipe();
             //Método que será chamado sempre para atualizar a lista/recycler
@@ -136,6 +140,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
             recuperaSaldo();
 
         }else {
+            imgBtnAddUsuario.setVisibility(View.VISIBLE);
             //Método que será chamado sempre para atualizar a lista/recycler
             configurarCalendarView(grupoUsuario);
             //Configura a recycler com os itens da lista
@@ -153,7 +158,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-     //           resumoMensal = resumoMensalDAO.getResumoMensal(materialCalendarView.getCurrentDate().getYear() + "/" + materialCalendarView.getCurrentDate().getMonth());
+     //           resumoMensal = resumoMensalDAO.recuperarResumoMensal(materialCalendarView.getCurrentDate().getYear() + "/" + materialCalendarView.getCurrentDate().getMonth());
                 //Verifica se o valor foi setado
                 receitaTotal = movimentacoesDAO.getReceitaTotal();
                 //Verifica se o valor foi setado
@@ -166,35 +171,7 @@ public class MovimentacaoActivity extends AppCompatActivity {
                     //Caso não, subtrai saldo - despesa totais e mensais
                     saldoFinal = receitaTotal - despesaTotal;
                     //Atualiza saldo
-                    movimentacoesDAO.atualizarSaldo(saldoFinal);
-                    //Converte em String, adiciona máscara
-                    //Remove repetição
-                    handler.removeCallbacks(this);
-                }else {
-                    handler.postDelayed(this, 1000);
-                }
-            }
-        });
-    }
-
-    private void recuperaSaldo(Grupo grupo){
-
-        Handler handler = new Handler();
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica se o valor foi setado
-                receitaTotal = grupo.getReceitaGrupo();
-                //Verifica se o valor foi setado
-                despesaTotal = grupo.getDespesaGrupo();
-
-                //Verifica se estão nulos
-                if (receitaTotal != null && despesaTotal != null) {
-                    //Caso não, subtrai saldo - despesa totais e mensais
-                    saldoFinal = receitaTotal - despesaTotal;
-                    //Atualiza saldo
-                    movimentacoesDAO.atualizarSaldoGrupo(saldoFinal, grupo);
+            //        movimentacoesDAO.atualizarSaldo(saldoFinal);
                     //Converte em String, adiciona máscara
                     //Remove repetição
                     handler.removeCallbacks(this);
@@ -237,11 +214,13 @@ public class MovimentacaoActivity extends AppCompatActivity {
         });
     }
 
-
     private void recuperarDadosMes(String ano, String mes){
         //Consulta lista
-        listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes);
-        i=0;
+        movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, movAdapter, this, findViewById(android.R.id.content));
+//        recuperarSaldoMensal(ano, mes);
+
+
+   /*     i=0;
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -250,22 +229,48 @@ public class MovimentacaoActivity extends AppCompatActivity {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo networkInfo = cm.getActiveNetworkInfo();
                 //Consulta lista
-                listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes);
-                if (!listaMov.isEmpty()){ //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
-                    //Puxa método que recupera saldo mensal com loading de 1seg
-                }else {
-                    Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
-                }
-                recuperarSaldoMensal(ano, mes);
-                movAdapter.notifyDataSetChanged();
+                movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, movAdapter);
+//                if (movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes)) {
+                    if (!listaMov.isEmpty()) { //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
+                        //Puxa método que recupera saldo mensal com loading de 1seg
+                    } else {
+                        Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
+                    }
+                    recuperarSaldoMensal(ano, mes);
+//                    movAdapter.notifyDataSetChanged();
+//                }
             }
-        }, 100);
+        }, 250);*/
+    }
+
+
+    public void notifyItemsResumoChanged(View view, ResumoMensal resumoMensalRecebido){
+
+        resumoMensal = resumoMensalRecebido;
+
+        TextView txtReceitaMensal, txtDespesaMensal, txtSaldo;
+        ProgressBar progressBarSaldo = view.findViewById(R.id.progressBarSaldo);
+
+        DecimalFormat decimalFormat = new DecimalFormat("0.##");
+
+        txtDespesaMensal = view.findViewById(R.id.txtCustoMensal);
+        txtReceitaMensal = view.findViewById(R.id.txtReceitaMensal);
+        txtSaldo = view.findViewById(R.id.txtSaldo);
+
+
+        txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(resumoMensal.getReceitaMensal()));
+        txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(resumoMensal.getDespesaMensal()));
+        txtSaldo.setText("R$ " + decimalFormat.format(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal()));
+        progressBarSaldo.setVisibility(View.GONE);
+
     }
 
     private void recuperarDadosMes(String ano, String mes, Grupo grupo){
+    //    listaMov = null;
         //Consulta lista
-        listaMov = movimentacoesDAO.listarMovimentacoesGrupo(listaMov, ano, mes, grupo);
-        i=0;
+        listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, grupo, movAdapter, MovimentacaoActivity.this, findViewById(android.R.id.content));
+//        recuperarSaldoMensal(ano, mes, grupo);
+  /*      i=0;
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -274,31 +279,32 @@ public class MovimentacaoActivity extends AppCompatActivity {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo networkInfo = cm.getActiveNetworkInfo();
                 //Consulta lista
-                listaMov = movimentacoesDAO.listarMovimentacoesGrupo(listaMov, ano, mes, grupo);
+                listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, grupo, movAdapter);
                 if (!listaMov.isEmpty()){ //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
                     //Puxa método que recupera saldo mensal com loading de 1seg
                 }else {
                     Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
                 }
                 recuperarSaldoMensal(ano, mes, grupo);
-                movAdapter.notifyDataSetChanged();
+//                movAdapter.notifyDataSetChanged();
             }
-        }, 350);
+        }, 350);*/
     }
 
 
     //Construtor Grupo
     private void recuperarSaldoMensal(String ano, String mes, Grupo grupo){ //Método que controle o txtSaldo e retorno de itens
         //Seta os textos como vazio e exibe loading
-        txtReceitaMensal.setText("");
+       /* txtReceitaMensal.setText("");
         txtDespesaMensal.setText("");
         txtSaldo.setText("");
         progressBarSaldo.setVisibility(View.VISIBLE);
-        Handler handler = new Handler();
+        resumoMensal = resumoMensalDAO.recuperarResumoMensal(ano + "/" + mes, findViewById(android.R.id.content), grupo);*/
+ /*       Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                resumoMensal = resumoMensalDAO.getResumoMensalGrupo(ano + "/" + mes, grupo);
+                resumoMensal = resumoMensalDAO.recuperarResumoMensal(ano + "/" + mes, grupo);
                 if (resumoMensal.getReceitaMensal() != null) { //Quando não está nulo significa que foi recebido o valor
                     if (resumoMensal.getAnoMes().equals(ano + "/" + mes)) { //Se data e ano do resumo forem igual à fornecida, irá retornar infos
                         Log.i("Logando", "Resumo, saldo: " + resumoMensal.getSaldoMensal() + " ano " + ano + " mes " + mes);
@@ -315,41 +321,20 @@ public class MovimentacaoActivity extends AppCompatActivity {
                     Log.i("Logando", "Resumo, valor nulo");
                     handler.postDelayed(this, 30); }
             }
-        }, 1000);
+        }, 1000);*/
 
     }
 
     //Construtor individual
-    private void recuperarSaldoMensal(String ano, String mes){ //Método que controle o txtSaldo e retorno de itens
+  /*  private void recuperarSaldoMensal(String ano, String mes){ //Método que controle o txtSaldo e retorno de itens
         //Seta os textos como vazio e exibe loading
         txtReceitaMensal.setText("");
         txtDespesaMensal.setText("");
         txtSaldo.setText("");
         progressBarSaldo.setVisibility(View.VISIBLE);
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                resumoMensal = resumoMensalDAO.getResumoMensal(ano + "/" + mes);
-                if (resumoMensal.getReceitaMensal() != null) { //Quando não está nulo significa que foi recebido o valor
-                    if (resumoMensal.getAnoMes().equals(ano + "/" + mes)) { //Se data e ano do resumo forem igual à fornecida, irá retornar infos
-                        Log.i("Logando", "Resumo, saldo: " + resumoMensal.getSaldoMensal() + " ano " + ano + " mes " + mes);
-                        //Retorna as infos como desejado
-                        txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(resumoMensal.getReceitaMensal()));
-                        txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(resumoMensal.getDespesaMensal()));
-                        txtSaldo.setText("R$ " + decimalFormat.format(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal()));
-                        //Esconde loading
-                        progressBarSaldo.setVisibility(View.GONE);
-                    }else { //Significa que o Resumo do mes atual ainda não retornou
-                        Log.i("Logando", "Data resumo: " + resumoMensal.getAnoMes() + ", Data calendário: " + ano + "/" + mes);
-                        handler.postDelayed(this, 30); }
-                }else { //Significa que o valor ainda está nulo
-                    Log.i("Logando", "Resumo, valor nulo");
-                    handler.postDelayed(this, 30); }
-            }
-        }, 1000);
+        resumoMensal = resumoMensalDAO.recuperarResumoMensal(ano + "/" + mes, findViewById(android.R.id.content));
 
-    }
+    }*/
 
     private void swipe(){
 
@@ -395,13 +380,13 @@ public class MovimentacaoActivity extends AppCompatActivity {
             //Pega o objeto específico na lista
             movimentacao = listaMov.get(position);
             //Chama método DAO de exclusão
-            movimentacoesDAO.removerMovimentacao(movimentacao);
+            movimentacoesDAO.removerMovimentacao(movimentacao, movAdapter, position);
             //Remove item da lista
             listaMov.remove(position);
             //Atualiza saldo
             atualizarSaldo(movimentacao);
             //Notifica o recycler da exclusão
-            movAdapter.notifyItemRemoved(position);
+//            movAdapter.notifyItemRemoved(position);
 
         });
 
@@ -411,7 +396,16 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
     }
 
+    public void notifyMovimentacaoRemoved(){
+
+
+
+
+    }
+
     private void atualizarSaldo(Movimentacao movimentacao){
+
+     //   resumoMensal = resumoMensalDAO.getResumoMensal();
 
     if (movimentacao.getTipo().equals("r")){
             //Atualiza saldo geral
@@ -419,22 +413,24 @@ public class MovimentacaoActivity extends AppCompatActivity {
             movimentacoesDAO.atualizarReceita(receitaAtualizada);
             saldoFinal -= movimentacao.getValor();
             //Atualiza saldo mensal, PUXAR DATA DA MOVIMENTACAO PARA LOCALIZAR RESUMO CORRETO
-            resumoMensal.setReceitaMensal(resumoMensal.getReceitaMensal() - movimentacao.getValor());
+ //           resumoMensal.setReceitaMensal(resumoMensal.getReceitaMensal() - movimentacao.getValor());
 
         }else {
             Double despesaAtualizada = movimentacoesDAO.getDespesaTotal() - movimentacao.getValor();
             movimentacoesDAO.atualizarDespesa(despesaAtualizada);
             saldoFinal += movimentacao.getValor();
             //Atualiza saldo mensal
-            resumoMensal.setDespesaMensal(resumoMensal.getDespesaMensal() - movimentacao.getValor());
+//            resumoMensal.setDespesaMensal(resumoMensal.getDespesaMensal() - movimentacao.getValor());
         }
-        resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
+/*        resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
 
         resumoMensalDAO.setResumoMensal(resumoMensal);
 
-        movimentacoesDAO.atualizarSaldo(saldoFinal);
+        movimentacoesDAO.atualizarSaldo(saldoFinal);*/
 
-        recuperarSaldoMensal(anoSel, mesSel);
+        calcularRendaMensal(listaMov, findViewById(android.R.id.content));
+
+//        recuperarSaldoMensal(anoSel, mesSel);
     }
 
     private void telaGrupo(){
@@ -444,7 +440,8 @@ public class MovimentacaoActivity extends AppCompatActivity {
 
     //Método que verifica se há valor no Bundle, caso tenha, significa que a activity se trata de uma
     //tela de movimentação de GRUPO
-    public Boolean recuperarBundle(){
+    @Override
+    public Boolean recuperaBundle() {
         Intent intent = getIntent();
         grupoUsuario = (Grupo) intent.getSerializableExtra("grupo");
         if (grupoUsuario == null) return false;
@@ -452,124 +449,51 @@ public class MovimentacaoActivity extends AppCompatActivity {
         return true;
     }
 
-
-    //Os métodos abaixo são todos referente a exibição de GRUPO
-
-
-
-
-
-    private void configurarCalendarViewGrupo(Grupo grupo){
-
-        CharSequence[] meses = {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"};
-        materialCalendarView.setTitleMonths(meses);
-
-        CharSequence[] semanas = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"};
-        materialCalendarView.setWeekDayLabels(semanas);
-
-        anoSel = String.valueOf(materialCalendarView.getCurrentDate().getYear());
-        mesSel = String.valueOf(materialCalendarView.getCurrentDate().getMonth());
-
-        //Se for menor que dez, adiciona zero
-        if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
-
-        recuperarDadosMesGrupo(anoSel, mesSel, grupo);
-        Log.i("Logando", anoSel + "/" + mesSel);
-
-        //Quando alterado o mês
-        materialCalendarView.setOnMonthChangedListener((widget, date) -> {
-            anoSel = String.valueOf(date.getYear());
-            //Talvez seja necessário adicionar +1
-            mesSel = String.valueOf(date.getMonth());
-            //Se for menor que dez, adiciona zero
-            if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
-            //Recupera os valores mensais
-            recuperarDadosMesGrupo(anoSel, mesSel, grupo);
-        });
+    @Override
+    public void enviarBundle(int pos) {
+        Intent intent = new Intent(getApplicationContext(), AddIntegranteGrupo.class);
+        intent.putExtra("grupo", grupoUsuario);
+        startActivity(intent);
     }
 
-    private void recuperarDadosMesGrupo(String ano, String mes, Grupo grupo){
-        //Consulta lista
-        listaMov = movimentacoesDAO.listarMovimentacoesGrupo(listaMov, ano, mes, grupo);
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica conexão com internet
-                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                //Consulta lista
-                listaMov = movimentacoesDAO.listarMovimentacoesGrupo(listaMov, ano, mes, grupo);
-                Log.i("Lista MvActivity", "Tamanho da lista: " + listaMov.size());
-                if (!listaMov.isEmpty()){ //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
-                    //Puxa método que recupera saldo mensal com loading de 1seg
-                }else {
-                    Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
-                }
-                recuperarSaldoMensalGrupo(ano, mes, grupo);
-                movAdapter.notifyDataSetChanged();
-            }
-        }, 100);
+    @Override
+    public void houveAlteracao() {
+
+        movAdapter.notifyDataSetChanged();
+
     }
 
-    private void recuperarSaldoMensalGrupo(String ano, String mes, Grupo grupo){ //Método que controle o txtSaldo e retorno de itens
-        //Seta os textos como vazio e exibe loading
+    public void calcularRendaMensal(List<Movimentacao> listaMovimentacoes, View view){
+
+        TextView txtReceitaMensal;
+        TextView txtDespesaMensal;
+        TextView txtSaldo;
+        ProgressBar progressBarSaldo;
+        progressBarSaldo = view.findViewById(R.id.progressBarSaldo);
+        txtSaldo = view.findViewById(R.id.txtSaldo);
+        txtDespesaMensal = view.findViewById(R.id.txtCustoMensal);
+        txtReceitaMensal = view.findViewById(R.id.txtReceitaMensal);
+
         txtReceitaMensal.setText("");
         txtDespesaMensal.setText("");
         txtSaldo.setText("");
-        progressBarSaldo.setVisibility(View.VISIBLE);
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                resumoMensal = resumoMensalDAO.getResumoMensalGrupo(ano + "/" + mes, grupo);
-                if (resumoMensal.getReceitaMensal() != null) { //Quando não está nulo significa que foi recebido o valor
-                    if (resumoMensal.getAnoMes().equals(ano + "/" + mes)) { //Se data e ano do resumo forem igual à fornecida, irá retornar infos
-                        Log.i("Logando", "Resumo, saldo: " + resumoMensal.getSaldoMensal() + " ano " + ano + " mes " + mes);
-                        //Retorna as infos como desejado
-                        txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(resumoMensal.getReceitaMensal()));
-                        txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(resumoMensal.getDespesaMensal()));
-                        txtSaldo.setText("R$ " + decimalFormat.format(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal()));
-                        //Esconde loading
-                        progressBarSaldo.setVisibility(View.GONE);
-                    }else { //Significa que o Resumo do mes atual ainda não retornou
-                        Log.i("Logando", "Data resumo: " + resumoMensal.getAnoMes() + ", Data calendário: " + ano + "/" + mes);
-                        handler.postDelayed(this, 30); }
-                }else { //Significa que o valor ainda está nulo
-                    Log.i("Logando", "Resumo, valor nulo");
-                    handler.postDelayed(this, 30); }
-            }
-        }, 1000);
+//        progressBarSaldo.setVisibility(View.VISIBLE);
 
-    }
+        Double despesaTotalMes = 0.0, receitaTotalMes = 0.0;
 
-    private void recuperaSaldoGrupo(Grupo grupo){
+        for ( Movimentacao mov : listaMovimentacoes ){
 
-        Handler handler = new Handler();
+            if (mov.getTipo().equals("r")) receitaTotalMes = receitaTotalMes + mov.getValor();
+            else if (mov.getTipo().equals("d")) despesaTotalMes = despesaTotalMes + mov.getValor();
 
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                //           resumoMensal = resumoMensalDAO.getResumoMensal(materialCalendarView.getCurrentDate().getYear() + "/" + materialCalendarView.getCurrentDate().getMonth());
-                //Verifica se o valor foi setado
-                Double receitaTotal = grupo.getReceitaGrupo();
-                //Verifica se o valor foi setado
-                Double despesaTotal = grupo.getDespesaGrupo();
+        }
 
-                //Verifica se estão nulos
-                if (receitaTotal != null && despesaTotal != null) {
-                    //Caso não, subtrai saldo - despesa totais e mensais
-                    Double saldoFinal = receitaTotal - despesaTotal;
-                    //Atualiza saldo
-                    movimentacoesDAO.atualizarSaldoGrupo(saldoFinal, grupo);
-                    //Converte em String, adiciona máscara
-                    //Remove repetição
-                    handler.removeCallbacks(this);
-                }else {
-                    handler.postDelayed(this, 1000);
-                }
-            }
-        });
+        progressBarSaldo.setVisibility(View.GONE);
+        txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(receitaTotalMes));
+        txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(despesaTotalMes));
+        txtSaldo.setText("R$ " + decimalFormat.format(receitaTotalMes - despesaTotalMes));
+
+
     }
 
 }

@@ -1,4 +1,4 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityGrupos;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
@@ -6,15 +6,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.example.aulafirebase.Adapter.GrupoAdapter;
+import com.example.aulafirebase.BundleRecuperado;
 import com.example.aulafirebase.DAL.UsuarioGrupoDAO;
 import com.example.aulafirebase.Model.Grupo;
+import com.example.aulafirebase.Controller.ActivityMovimentacao.MovimentacaoActivity;
+import com.example.aulafirebase.R;
 import com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig;
 import com.example.aulafirebase.helper.RecyclerItemClickListener;
 
@@ -22,13 +25,16 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListarGruposActivity extends AppCompatActivity implements Serializable {
+public class ListarGruposActivity extends AppCompatActivity implements Serializable, BundleRecuperado {
 
     private RecyclerView rGrupos;
     private List<Grupo> listaGrupos = new ArrayList<>();
     private UsuarioGrupoDAO grupoDAO = new UsuarioGrupoDAO();
     private GrupoAdapter grupoAdapter;
     private ProgressBar progressBar;
+    private TextView txtStatus;
+    //Booleano que informa se o status já foi verificado no DAO
+    private Boolean verificouDAO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +43,9 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
 
         rGrupos = findViewById(R.id.rGrupos);
         progressBar = findViewById(R.id.progressGruposLista);
+        txtStatus = findViewById(R.id.txtGrupoCarregado);
+
+        grupoAdapter = new GrupoAdapter(listaGrupos);
 
         itemClickListener();
         
@@ -53,31 +62,42 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
     }
 
     private void recuperarGrupos(){
+        verificouDAO = false;
 
-        listaGrupos = grupoDAO.getGruposUsuario();
+        progressBar.setVisibility(View.VISIBLE);
+        txtStatus.setVisibility(View.VISIBLE);
+        txtStatus.setText("Carregando...");
+        rGrupos.setVisibility(View.GONE);
 
-        grupoAdapter = new GrupoAdapter(listaGrupos);
+        verificouDAO = grupoDAO.getGruposUsuario(listaGrupos);
 
         Handler handler = new Handler();
 
-        handler.postDelayed(new Runnable() {
+        handler.post(new Runnable() {
             @Override
             public void run() {
-              //  listaGrupos = grupoDAO.getGruposUsuario();
-                if (listaGrupos != null && !listaGrupos.isEmpty()){
+                verificouDAO = grupoDAO.getStatus();
 
-                    for (Grupo grups : listaGrupos){
-                        Log.i("Grupos ListarGrupo", grups.getNomeGrupo() + " - " + grups.getDescGrupo() + ", " + grups.getReceitaGrupo());
+                if (verificouDAO){
+                    if (!listaGrupos.isEmpty()) {
+                        for (Grupo grups : listaGrupos) {
+                            Log.i("Grupos ListarGrupo", grups.getNomeGrupo() + " - " + grups.getDescGrupo() + ", " + grups.getReceitaGrupo());
+                        }
+                        txtStatus.setVisibility(View.GONE);
+                        progressBar.setVisibility(View.GONE);
+                        rGrupos.setVisibility(View.VISIBLE);
+                    }else if (listaGrupos.isEmpty()){
+                        txtStatus.setText("Você não está participando de um grupo atualmente.\nTente criar um :)");
+                        progressBar.setVisibility(View.GONE);
                     }
-
-                }else handler.postDelayed(this, 1000);
+                }else {
+                    handler.postDelayed(this, 50);
+                }
 
                 grupoAdapter.notifyDataSetChanged();
-                progressBar.setVisibility(View.GONE);
-                rGrupos.setVisibility(View.VISIBLE);
 
             }
-        }, 100);
+        });
 
     }
 
@@ -89,7 +109,7 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
                         new RecyclerItemClickListener.OnItemClickListener() {
                             @Override
                             public void onItemClick(View view, int position) {
-                                cliqueGrupo(position);
+                                enviarBundle(position);
                             }
 
                             @Override
@@ -106,11 +126,11 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
         );
     }
 
-
-    private void cliqueGrupo(int pos){
+    @Override
+    public void enviarBundle(int pos) {
         Intent intentGrupo = new Intent( this, MovimentacaoActivity.class );
         intentGrupo.putExtra("grupo", listaGrupos.get(pos));
         startActivity(intentGrupo);
-
     }
+
 }

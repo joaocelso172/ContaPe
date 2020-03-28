@@ -50,7 +50,6 @@ public class UsuariosDAO {
                     Log.i("Logando", "Usuario não cadastrado");
                     isSucess = usuariosRef.child(idUsuario)
                             .setValue(usuario).isSuccessful();
-
                 }
             }
 
@@ -59,6 +58,7 @@ public class UsuariosDAO {
 
             }
         });
+
 
        return isSucess;
     }
@@ -73,6 +73,7 @@ public class UsuariosDAO {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 usuario = dataSnapshot.getValue(Usuario.class);
+
             }
 
             @Override

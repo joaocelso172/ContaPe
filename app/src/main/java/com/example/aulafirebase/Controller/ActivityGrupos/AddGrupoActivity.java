@@ -1,23 +1,19 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityGrupos;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.example.aulafirebase.DAL.ConviteDAO;
 import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.GrupoDAO;
 import com.example.aulafirebase.Model.Convite;
 import com.example.aulafirebase.Model.Grupo;
-import com.example.aulafirebase.Model.Movimentacao;
-
-import java.util.List;
+import com.example.aulafirebase.R;
 
 public class AddGrupoActivity extends AppCompatActivity {
 

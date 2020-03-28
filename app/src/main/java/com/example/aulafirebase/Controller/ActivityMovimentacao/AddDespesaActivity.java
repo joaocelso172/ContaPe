@@ -1,4 +1,4 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityMovimentacao;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -17,10 +17,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.GrupoDAO;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.ResumoMensalDAO;
@@ -29,11 +34,16 @@ import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
 import com.example.aulafirebase.Model.Usuario;
+import com.example.aulafirebase.R;
 import com.example.aulafirebase.helper.DateCustom;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.database.DatabaseReference;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import br.com.sapereaude.maskedEditText.MaskedEditText;
 
@@ -43,11 +53,11 @@ public class AddDespesaActivity extends AppCompatActivity {
     //Botão para salvar despesa
     private Button btnSalvarDespesa;
     //Edit Text referente a campos
-    private TextInputEditText edDataDespesa, edDescDespesa, edNomeDespesa;
+    private TextInputEditText edDataDespesa, edDescDespesa;
     //EditText referente ao valor descrito
     private EditText edValorDespesa;
     //Spinner contendo categorias
-    private Spinner spinnerCategoriaDespesa;
+    private Spinner spinnerCategoriaDespesa, spinnerAtribuido;
     //Objeto de acesso ao nó de movimentacoes
     private final MovimentacoesDAO despesasDAO = new MovimentacoesDAO();
     //Objeto de acesso aos resumos do nó de movimentacoes
@@ -71,9 +81,20 @@ public class AddDespesaActivity extends AppCompatActivity {
 
     private Boolean dataClicada = false;
 
-    private Grupo grupo = null;
+    private TextView txtMov;
+
+    private Spinner spinnetTipoParcela;
+    private EditText editInputDespParcela;
+    private CheckBox checkParcelas;
+    private LinearLayout linearParcelas;
+
+    private String[] tipoParcelas = new String[]{"Mensais", "Semanais", "Anuais", "Quinzenais"};
+
+    private Grupo grupoRecebido = null;
     private GrupoDAO grupoDAO = new GrupoDAO();
     private Grupo grupoAtualizado;
+    private ArrayAdapter<String> arrayAdapterAtribuido;
+    private List<String> listEmailIntegrantes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,11 +104,20 @@ public class AddDespesaActivity extends AppCompatActivity {
         btnSalvarDespesa = findViewById(R.id.btnSalvarDespesa);
         edDataDespesa = findViewById(R.id.edDataDespesa);
         edDescDespesa = findViewById(R.id.edDescDespesa);
-        edNomeDespesa = findViewById(R.id.edNomeDespesa);
         edValorDespesa = findViewById(R.id.edValorDespesa);
         spinnerCategoriaDespesa = findViewById(R.id.spinnerCatDespesa);
         editHoraDespesa = findViewById(R.id.editHoraDespesa);
+        spinnerAtribuido = findViewById(R.id.spinnerDespAtribuida);
+        txtMov = findViewById(R.id.txtDespAtr);
+        spinnetTipoParcela = findViewById(R.id.spinnerTipoParcelaDesp);
+        editInputDespParcela = findViewById(R.id.editInputDespParcela);
+        editInputDespParcela = findViewById(R.id.editInputDespParcela);
+        checkParcelas = findViewById(R.id.checkParcelaDesp);
+        linearParcelas = findViewById(R.id.linearParcelasDesp);
 
+        //Adapter para utilizar o spinner
+        ArrayAdapter<String> arrayAdapterParcelas = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, tipoParcelas);
+        arrayAdapterParcelas.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
 
         //Adapter para utilizar o spinner
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, categorias);
@@ -96,18 +126,16 @@ public class AddDespesaActivity extends AppCompatActivity {
 
         //Setando o Adapter ao Spinner
         spinnerCategoriaDespesa.setAdapter(arrayAdapter);
+        spinnetTipoParcela.setAdapter(arrayAdapterParcelas);
 
         bundleData = getIntent().getExtras();
         if( (!bundleData.getString("ano").equals(null)) && (!bundleData.getString("mes").equals(null)) ) {
             anoSel = bundleData.getString("ano");
             mesSel = bundleData.getString("mes");
-            edDataDespesa.setText( "01" + "/" + mesSel + "/" + anoSel );
+            String[] data = DateCustom.firebaseFormatDateBuild(DateCustom.dataAtual());
+            edDataDespesa.setText( data[0] + "/" + mesSel + "/" + anoSel );
         }else edDataDespesa.setText( DateCustom.dataAtual() ); //Preenche com a data atual
 
-        if (recuperarBundle()){
-            grupoAtualizado = grupoDAO.getGrupo(grupo);
-            Log.i("Grupo AddGanho", grupo.getNomeGrupo());
-        }else Log.i("Grupo AddGanho", "null");
 
         //Preenche com a hora atual
         editHoraDespesa.setText(DateCustom.horaAtual());
@@ -124,6 +152,14 @@ public class AddDespesaActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 editHoraDespesa.setText("");
                 return false;
+            }
+        });
+
+        checkParcelas.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) linearParcelas.setVisibility(View.VISIBLE);
+                else linearParcelas.setVisibility(View.GONE);
             }
         });
 
@@ -171,23 +207,48 @@ public class AddDespesaActivity extends AppCompatActivity {
         });
 
         btnSalvarDespesa.setOnClickListener(v -> {
-            if (grupo == null) salvarDespesa();
-            else salvarDespesaGrupo();
+            if (recuperarBundle()) grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
+            else grupoAtualizado = null;
+
+            salvarDespesa(grupoAtualizado);
         });
 
     }
 
-    private void salvarDespesa(){
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (recuperarBundle()){
+            grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
+            grupoAtualizado.setGrupoId(grupoRecebido.getGrupoId());
+            recuperarUsuariosGrupo();
+        }else {
+            spinnerAtribuido.setVisibility(View.GONE);
+            txtMov.setVisibility(View.GONE);
+        }
+
+    }
+
+    private void salvarDespesa(Grupo grupo){
         //Objeto de movimentacao
         Movimentacao despesaSalva = new Movimentacao();
 
-        //Recupera usuário antes de salvar
-        usuario = usuariosDAO.getUsuario();
-        //Seta valores
-        //Despesa Total
-        Double despesaTotal = usuario.getDespesaTotal();
-        //Saldo antes da execução
-        Double saldoAtual = usuario.getSaldoDisponivel();
+        Double despesaTotal = null;
+
+        if (grupo == null){
+            //Recupera usuário antes de salvar
+            usuario = usuariosDAO.getUsuario();
+            //Seta valores
+            //Despesa Total
+            despesaTotal = usuario.getDespesaTotal();
+        } else if (grupo != null){
+            //Recupera o grupo antes de salvar
+            grupoAtualizado = grupoDAO.getGrupo(grupo);
+            //Seta valores
+            //Receita Total
+            despesaTotal = grupoAtualizado.getReceitaGrupo();
+        }
 
         //Se for true, salva despesa
         if (validarCampos()){
@@ -197,12 +258,19 @@ public class AddDespesaActivity extends AppCompatActivity {
             //Colocando o valor em uma varíavel, já que será usado múltiplas vezes
             Double valor = Double.parseDouble(edValorDespesa.getText().toString());
             //Chama método para recuperar resumo mensal
-            atualizarOuCriarResumoMensal(dataMov, valor);
+            if (grupo == null) atualizarOuCriarResumoMensal(dataMov, valor);
+            else if (grupo != null) atualizarOuCriarResumoMensal(dataMov, valor, grupo);
             //Setando valores de acordo com os campos
             despesaSalva.setValor(valor);
             despesaSalva.setDescTarefa(edDescDespesa.getText().toString());
             despesaSalva.setDataTarefa(edDataDespesa.getText().toString() + " - " + editHoraDespesa.getText());
             despesaSalva.setCategoria(spinnerCategoriaDespesa.getSelectedItem().toString());
+            if (spinnerAtribuido.getSelectedItem() != null) despesaSalva.setAtribuicao(spinnerAtribuido.getSelectedItem().toString());
+            //Caso seja parcelado
+            if (checkParcelas.isChecked()){
+                despesaSalva.setParcelado(true);
+                despesaSalva.setParcelaTotal(Integer.parseInt(editInputDespParcela.getText().toString()));
+            }else despesaSalva.setParcelado(false);
             //Caso despesa = 'r'; Caso Despesa = 'd'.
             despesaSalva.setTipo("d");
 
@@ -211,40 +279,85 @@ public class AddDespesaActivity extends AppCompatActivity {
                 //Soma a despesa total + o valor descrito
                 //Despesa atualizada
                 Double despesaAtualizada = despesaTotal + valor;
-                saldoAtual -= despesaAtualizada;
                 //Verifica conexão do celular
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo networkInfo = cm.getActiveNetworkInfo();
 
                 //Salva a despesa, atualiza atributo despesaGeral e saldoGeral desde que tenha internet
                 if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
+                    if (grupo == null && !despesaSalva.isParcelado()) {
                         despesasDAO.salvarMovimentacao(despesaSalva);
                         despesasDAO.atualizarDespesa(despesaAtualizada);
                          /*  if (saldoAtual >= usuario.getValorAlerta()) Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
                            if (saldoAtual < usuario.getValorAlerta()) Toast.makeText(this, "Despesa salva... Atente-se as finanças! Saldo abaixo do seguro...", Toast.LENGTH_SHORT).show(); //Adicionar valor seguro*/
+
+
+                    }else if (grupo == null && despesaSalva.isParcelado()) parcelarDespesa(despesaSalva); //Se parcelado, executa método próprio
+                        else if (grupo != null && !despesaSalva.isParcelado()){
+                        despesasDAO.salvarMovimentacao(despesaSalva, grupoAtualizado);
+                        despesasDAO.atualizarDespesa(despesaAtualizada, grupoAtualizado);
+                    }
+
                     Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
-                            finish();
+                    finish();
                 }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
             }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
         }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
+
+    private void parcelarDespesa(Movimentacao despesa){
+
+        int parcelaTotal = despesa.getParcelaTotal();
+        Double valorDividido = (despesa.getValor() / parcelaTotal);
+        despesa.setValor(valorDividido);
+        String data[] = DateCustom.firebaseFormatDateBuild(despesa.getDataTarefa());
+        List <Movimentacao> movimentacaoParcelada = new ArrayList<>();
+        List <String> datasMovs = new ArrayList<>();
+
+        int i;
+        int mes = Integer.parseInt(data[1]);
+        int ano = Integer.parseInt(data[2]);
+
+        for (i = 0; i<parcelaTotal; i++){
+            Movimentacao movParcela = despesa;
+            if (mes < 12) mes++;
+            else if (mes >= 12) {
+                mes = 1;
+                Log.i("Parcelado", "Ano antes alterar: " + mes + "/" + ano);
+                ano++;
+                Log.i("Parcelado", "Ano alterado: " +
+                        mes + "/" + ano);
+            }
+
+            String mesParcela = String.valueOf(mes);
+            String anoParcela = String.valueOf(ano);
+            if (mes < 10) mesParcela = "0" + mes;
+
+            datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
+            movParcela.setDataTarefa(datasMovs.get(i));
+            movParcela.setParcelaAtual(i + 1);
+            movimentacaoParcelada.add(movParcela);
+
+
+            Log.i("Parcelado", "Antes de lançar - " + "Parcela: " + movimentacaoParcelada.get(i).getParcelaAtual() + ", Item: " + movimentacaoParcelada.get(i).getDescTarefa());
+
+        }
+
+        despesasDAO.salvarMovimentacao(movimentacaoParcelada, datasMovs);
+
+
+    }
+
+
 
     private Boolean validarCampos(){
 
         //Valida se campos estão preenchidos
         if (edValorDespesa.getText().toString().isEmpty()){
             edValorDespesa.setError("Preencha o valor para continuar!");
-            if (edNomeDespesa.getText().toString().isEmpty()) edNomeDespesa.setError("Preencha o nome da despesa para continuar!");
             if (edDescDespesa.getText().toString().isEmpty())edDescDespesa.setError("Preencha a descrição para continuar!");
             if (edDataDespesa.getText().toString().isEmpty()) edDataDespesa.setError("Preencha a data para continuar!");
-
-            return false;
-        }
-
-        if (edNomeDespesa.getText().toString().isEmpty()){
-            edNomeDespesa.setError("Preencha o nome da despesa para continuar!");
-            if (edDescDespesa.getText().toString().isEmpty())edDescDespesa.setError("Preencha a descrição para continuar!");
-            if (edDataDespesa.getText().toString().isEmpty()) edDataDespesa.setError("Preencha a data para continuar!");
+            if (checkParcelas.isChecked() && editInputDespParcela.getText().toString().isEmpty()) editInputDespParcela.setError("Preencha o número de parcelas!");
 
             return false;
         }
@@ -252,14 +365,15 @@ public class AddDespesaActivity extends AppCompatActivity {
         if (edDescDespesa.getText().toString().isEmpty()){
             edDescDespesa.setError("Preencha a descrição para continuar!");
             if (edDataDespesa.getText().toString().isEmpty()) edDataDespesa.setError("Preencha a data para continuar!");
+            if (checkParcelas.isChecked() && editInputDespParcela.getText().toString().isEmpty()) editInputDespParcela.setError("Preencha o número de parcelas!");
 
             return false;
         }
 
+        if (checkParcelas.isChecked() && editInputDespParcela.getText().toString().isEmpty()) {
+            editInputDespParcela.setError("Preencha o número de parcelas!");
 
-        if (spinnerCategoriaDespesa.getSelectedItem().toString().isEmpty()){
-            spinnerCategoriaDespesa.setSelection(0);
-            Toast.makeText(this, "Categoria padrão selecionada", Toast.LENGTH_SHORT).show();
+            return false;
         }
 
         String[] hora;
@@ -300,6 +414,32 @@ public class AddDespesaActivity extends AppCompatActivity {
                         resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao);
                         handler.removeCallbacks(this);
                         resumoRecuperado =  true;
+                }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
+            }
+        });
+
+        return resumoRecuperado;
+    }
+
+    private Boolean atualizarOuCriarResumoMensal(String dataMovimentacao, Double valorDespesa, Grupo grupo){
+        Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                //Verifica se há resumo, caso não haja cria e retorna
+                resumoMensal = resumoMensalDAO.getOrSubResumoMensal(dataMovimentacao, grupo);
+                //Verifica se há algo no resumoMensal a cada 300 milisegundos
+                handler.postDelayed(this, 300);
+                //Se não for nulo, significa que algo retornou
+                if (resumoMensal.getDespesaMensal() != null) {
+                    //Seta informações
+                    despesaMensal = resumoMensal.getDespesaMensal();
+                    resumoMensal.setDespesaMensal(despesaMensal + valorDespesa);
+                    //Método de saldo, deve ser sempre igual
+                    resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
+                    resumoMensalDAO.setResumoMensal(resumoMensal, dataMovimentacao, grupoAtualizado);
+                    handler.removeCallbacks(this);
+                    resumoRecuperado =  true;
                 }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
             }
         });
@@ -354,84 +494,24 @@ public class AddDespesaActivity extends AppCompatActivity {
 
     public Boolean recuperarBundle(){
         Intent intent = getIntent();
-        grupo = (Grupo) intent.getSerializableExtra("grupo");
-        if (grupo == null) return false;
+        grupoRecebido = (Grupo) intent.getSerializableExtra("grupo");
+        if (grupoRecebido == null) return false;
 
         return true;
     }
 
-    private void salvarDespesaGrupo(){
-        //Objeto de movimentacao
-        Movimentacao despesaSalva = new Movimentacao();
+    private void recuperarUsuariosGrupo (){
 
-        //Recupera grupo antes de salvar
-        grupoAtualizado = grupoDAO.getGrupo(grupo);
-        //Seta valores
-        //Despesa Total
-        Double despesaTotal = grupoAtualizado.getDespesaGrupo();
+        txtMov.setVisibility(View.VISIBLE);
 
-        //Se for true, salva Despesa
-        if (validarCampos()){
-            String dataMov;
-            //Trata campo data para agrupar em ano, mes e dia
-            dataMov = DateCustom.firebaseFormatDate(edDataDespesa.getText().toString());
-            //Colocando o valor em uma varíavel, já que será usado múltiplas vezes
-            Double valor = Double.parseDouble(edValorDespesa.getText().toString());
-            //Chama método para recuperar resumo mensal
-            atualizarOuCriarResumoMensalGrupo(dataMov, valor);
-            //Setando valores de acordo com os campos
-            despesaSalva.setValor(valor);
-            despesaSalva.setDescTarefa(edDescDespesa.getText().toString());
-            despesaSalva.setDataTarefa(edDataDespesa.getText().toString() + " - " + editHoraDespesa.getText());
-            despesaSalva.setCategoria(spinnerCategoriaDespesa.getSelectedItem().toString());
-            //Caso receita = 'r'; Caso Receita = 'd'.
-            despesaSalva.setTipo("d");
+        listEmailIntegrantes.add(FirebaseConfig.getFirebaseAuth().getCurrentUser().getEmail());
 
-            //Se Despesa não for nula significa que algo retornou
-            if (despesaTotal != null) {
-                //Soma a Despesa total + o valor descrito
-                //Despesa atualizada
-                Double despesaAtualizada = despesaTotal + valor;
-                //Verifica conexão do celular
-                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+        arrayAdapterAtribuido = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listEmailIntegrantes);
+        arrayAdapterAtribuido.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        spinnerAtribuido.setAdapter(arrayAdapterAtribuido);
 
-                //Salva a despesa, atualiza atributo despesaGeral e saldoGeral desde que tenha internet
-                if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
-                    despesasDAO.salvarMovimentacaoGrupo(despesaSalva, grupoAtualizado);
-                    despesasDAO.atualizarDespesaGrupo(despesaAtualizada, grupoAtualizado);
-                    Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
-                    finish();
-                }else Toast.makeText(this, "Por favor, conecte a internet e tente novamente...", Toast.LENGTH_SHORT).show();
-            }else Toast.makeText(this, "Parece que a conexão está um pouco lenta... Tente novamente", Toast.LENGTH_SHORT).show();
-        }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
-    }
+        grupoDAO.retornarIntegrantes(grupoAtualizado, listEmailIntegrantes, arrayAdapterAtribuido);
 
 
-    private Boolean atualizarOuCriarResumoMensalGrupo(String dataMovimentacao, Double valorDespesa){
-        Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica se há resumo, caso não haja cria e retorna
-                resumoMensal = resumoMensalDAO.getOrSubResumoMensalGrupo(dataMovimentacao, grupoAtualizado);
-                //Verifica se há algo no resumoMensal a cada 300 milisegundos
-                handler.postDelayed(this, 300);
-                //Se não for nulo, significa que algo retornou
-                if (resumoMensal.getDespesaMensal() != null) {
-                    //Seta informações
-                    despesaMensal = resumoMensal.getDespesaMensal();
-                    resumoMensal.setDespesaMensal(despesaMensal + valorDespesa);
-                    //Método de saldo, deve ser sempre igual
-                    resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
-                    resumoMensalDAO.setResumoMensalGrupo(resumoMensal, dataMovimentacao, grupoAtualizado);
-                    handler.removeCallbacks(this);
-                    resumoRecuperado =  true;
-                }else resumoRecuperado = false; //Se for false, significa que nada retornou e precisa ser executado de novo
-
-            }
-        });
-
-        return resumoRecuperado;
     }
 }

@@ -1,12 +1,17 @@
 package com.example.aulafirebase.DAL;
 
 import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 
+import com.example.aulafirebase.Controller.ActivityMovimentacao.AddGanhoActivity;
 import com.example.aulafirebase.Model.Grupo;
+import com.example.aulafirebase.Model.GrupoUsuario;
 import com.example.aulafirebase.Model.Usuario;
 import com.example.aulafirebase.Model.UsuarioGrupo;
+import com.example.aulafirebase.helper.Base64Custom;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
@@ -16,12 +21,15 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class GrupoDAO {
 
     private Grupo grupo = new Grupo();
     private UsuariosDAO usuariosDAO = new UsuariosDAO();
+
+    private List<GrupoUsuario> grupoUsuariosList = new ArrayList<>();
 
     private UsuarioGrupoDAO usuarioGrupoDAO = new UsuarioGrupoDAO();
 
@@ -33,8 +41,6 @@ public class GrupoDAO {
 
     //Referencia ao branch de usuarios feito baseada numa referencia geral já existente
     private DatabaseReference gruposRef = refenciaDb.child("grupos");
-
-    private DatabaseReference integrantesRef = gruposRef.child("integrantes");
 
     public void setGrupo(Grupo grupo){
 
@@ -83,10 +89,36 @@ public class GrupoDAO {
         return grupo;
     }
 
-    public void salvarIntegranteGrupo(Usuario integrante){
+    public void salvarIntegranteGrupo(Grupo grupo, GrupoUsuario grupoUsuario, Boolean isAdm){
 
-        integrantesRef.setValue(integrante);
+        String idUsuario = Base64Custom.codificarBase64(grupoUsuario.getEmailUsuario());
 
+        gruposRef.child(grupo.getGrupoId()).child("membros").child(idUsuario).setValue(grupoUsuario);
+
+    }
+
+    public void retornarIntegrantes(Grupo grupo,List<String> listEmail, ArrayAdapter<String> arrayAdapter){
+
+
+        gruposRef.child(grupo.getGrupoId()).child("membros").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                for (DataSnapshot dados : dataSnapshot.getChildren()){
+                    GrupoUsuario grupoUsuario = dados.getValue(GrupoUsuario.class);
+                    if (grupoUsuario.getEmailUsuario() != FirebaseConfig.getFirebaseAuth().getCurrentUser().getEmail()) listEmail.add(grupoUsuario.getEmailUsuario());
+                }
+
+                arrayAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+
+
+        });
 
     }
 

@@ -1,4 +1,4 @@
-package com.example.aulafirebase;
+package com.example.aulafirebase.Controller.ActivityGrupos;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.example.aulafirebase.Model.Grupo;
+import com.example.aulafirebase.R;
 
 import java.io.Serializable;
 

@@ -2,9 +2,43 @@ package com.example.aulafirebase.Model;
 
 public class Movimentacao {
 
-    private String descTarefa, dataTarefa, tipo, categoria;
+    private String descTarefa, dataTarefa, tipo, categoria, atribuicao;
     private Double valor;
+    private int parcelaTotal, parcelaAtual;
     private String ID;
+    private Boolean parcelado;
+
+    public Boolean isParcelado() {
+        return parcelado;
+    }
+
+    public void setParcelado(Boolean parcelado) {
+        this.parcelado = parcelado;
+    }
+
+    public int getParcelaTotal() {
+        return parcelaTotal;
+    }
+
+    public void setParcelaTotal(int parcelaTotal) {
+        this.parcelaTotal = parcelaTotal;
+    }
+
+    public int getParcelaAtual() {
+        return parcelaAtual;
+    }
+
+    public void setParcelaAtual(int parcelaAtual) {
+        this.parcelaAtual = parcelaAtual;
+    }
+
+    public String getAtribuicao() {
+        return atribuicao;
+    }
+
+    public void setAtribuicao(String atribuicao) {
+        this.atribuicao = atribuicao;
+    }
 
     public String getID() {
         return ID;
