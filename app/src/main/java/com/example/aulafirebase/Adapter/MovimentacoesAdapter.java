@@ -67,8 +67,17 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
                 }
             }
 
-            if (movimentacao.getTipoFaturamento() != null && movimentacao.getTipoFaturamento().equals("parcelado")) {
-                holder.txtParcela.setText("Parcela " + movimentacao.getParcelaAtual() + " do total de " + movimentacao.getParcelaTotal());
+            if (movimentacao.getTipoFaturamento() != null ) {
+
+                switch (movimentacao.getTipoFaturamento()){
+                    case "parcelado":
+                        holder.txtParcela.setText("Parcela " + movimentacao.getParcelaAtual() + " do total de " + movimentacao.getParcelaTotal());
+                        break;
+
+                    case "recorrente":
+                        holder.txtParcela.setText("Recorrência" + movimentacao.getParcelaAtual() + " do total de " + movimentacao.getParcelaTotal());
+                        break;
+                }
                 holder.txtParcela.setVisibility(View.VISIBLE);
             }
 

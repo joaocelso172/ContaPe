@@ -118,7 +118,7 @@ public class MovimentacoesDAO {
          //Formata uma nova data, para cada parcela
          String dataMovimentacao = DateCustom.firebaseFormatDate(datas.get(i));
          movimentacaoSalva.get(i).setDataTarefa(datas.get(i));
-         if (movimentacaoSalva.get(i).getTipoFaturamento().equals("parcelado")) movimentacaoSalva.get(i).setParcelaAtual(i + 1);
+         movimentacaoSalva.get(i).setParcelaAtual(i + 1);
          //Cria uma nova referencia, para cada parcela
          DatabaseReference movParceladoRef;
          if (grupo == null) movParceladoRef = getDatabaseMovimentacaoInstance().child(dataMovimentacao).child(idMov);

@@ -335,7 +335,7 @@ public class AddDespesaActivity extends AppCompatActivity {
 
     private void salvarMovRecorrente(Movimentacao movimentacaoSalva, Grupo grupo) {
 
-        int parcelaTotal = 13;
+        int parcelaTotal = movimentacaoSalva.getParcelaTotal();
         String data[] = DateCustom.firebaseFormatDateBuild(movimentacaoSalva.getDataTarefa());
         List <Movimentacao> movimentacaoParcelada = new ArrayList<>();
         List <String> datasMovs = new ArrayList<>();
@@ -361,7 +361,8 @@ public class AddDespesaActivity extends AppCompatActivity {
 
             datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
             movParcela.setDataTarefa(datasMovs.get(i));
-            if (i == 12) movParcela.setUltimaContaRecorrente(true);
+            movParcela.setParcelaAtual(i + 1);
+            if (i == (movimentacaoSalva.getParcelaTotal() - 1)) movParcela.setUltimaContaRecorrente(true);
             movimentacaoParcelada.add(movParcela);
 
 
