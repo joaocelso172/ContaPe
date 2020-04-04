@@ -67,7 +67,7 @@ public class MovimentacoesAdapter extends RecyclerView.Adapter<MovimentacoesAdap
                 }
             }
 
-            if (movimentacao.isParcelado() != null && movimentacao.isParcelado()) {
+            if (movimentacao.getTipoFaturamento() != null && movimentacao.getTipoFaturamento().equals("parcelado")) {
                 holder.txtParcela.setText("Parcela " + movimentacao.getParcelaAtual() + " do total de " + movimentacao.getParcelaTotal());
                 holder.txtParcela.setVisibility(View.VISIBLE);
             }

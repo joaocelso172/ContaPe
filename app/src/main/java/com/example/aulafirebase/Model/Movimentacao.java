@@ -6,14 +6,23 @@ public class Movimentacao {
     private Double valor;
     private int parcelaTotal, parcelaAtual;
     private String ID;
-    private Boolean parcelado;
+    private String tipoFaturamento;
+    private Boolean ultimaContaRecorrente;
 
-    public Boolean isParcelado() {
-        return parcelado;
+    public Boolean isUltimaContaRecorrente() {
+        return ultimaContaRecorrente;
     }
 
-    public void setParcelado(Boolean parcelado) {
-        this.parcelado = parcelado;
+    public void setUltimaContaRecorrente(Boolean ultimaContaRecorrente) {
+        this.ultimaContaRecorrente = ultimaContaRecorrente;
+    }
+
+    public String getTipoFaturamento() {
+        return tipoFaturamento;
+    }
+
+    public void setTipoFaturamento(String tipoFaturamento) {
+        this.tipoFaturamento = tipoFaturamento;
     }
 
     public int getParcelaTotal() {

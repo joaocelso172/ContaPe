@@ -377,7 +377,7 @@ public class AddGanhoActivity extends AppCompatActivity {
                 //Salva a receita, atualiza atributo receitaGeral e saldoGeral desde que tenha internet
                 if (networkInfo != null && networkInfo.isConnectedOrConnecting()){
                     if (grupo == null){
-                        receitasDAO.salvarMovimentacao(receitaSalva);
+                   //     receitasDAO.salvarMovimentacao(receitaSalva);
                         receitasDAO.atualizarReceita(receitaAtualizada);
                     }
                     else if (grupo != null){

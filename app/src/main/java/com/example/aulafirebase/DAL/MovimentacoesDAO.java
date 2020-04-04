@@ -53,67 +53,88 @@ public class MovimentacoesDAO {
         this.status = status;
     }
 
-    public void salvarMovimentacao(Movimentacao movimentacaoSalva){
+    public void salvarMovimentacao(Movimentacao movimentacaoSalva, Grupo grupo){
+
+
+        /*String dataMov;
+        //Trata campo data para agrupar em ano, mes e dia
+        dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.getDataTarefa());
+        //Chamada do método que retorna instancia do BD e nó de Movimentacao
+        DatabaseReference movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
+        //Modificação do método utilizado para agrupar em datas agora
+        DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
+        //Cria uma Pk e insere os dados de um usuário ao BD
+        return movimentacoesData.push().setValue(movimentacaoSalva).isSuccessful();*/
 
         String dataMov, idMov;
         //Trata campo data para agrupar em ano, mes e dia
         Log.i("Data Mov", movimentacaoSalva.getDataTarefa());
         dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.getDataTarefa());
+        DatabaseReference movimentacoes;
         //Chamada do método que retorna instancia do BD e nó de Movimentacao
-        DatabaseReference movimentacoes = getDatabaseMovimentacaoInstance();
-        //Modificação do método utilizado para agrupar em datas agora
-        DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
-        //Grava ID da MOV
-        idMov = movimentacoesData.push().getKey();
+        if (grupo == null)  movimentacoes = getDatabaseMovimentacaoInstance();
+        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
+            //Modificação do método utilizado para agrupar em datas agora
+            DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
+            //Grava ID da MOV
+            idMov = movimentacoesData.push().getKey();
+
         //Cria uma Pk e insere os dados de um usuário ao BD
-        if (movimentacaoSalva.isParcelado()) salvarMovimentacaoParcelada(movimentacaoSalva, idMov);
-        else movimentacoesData.child(idMov).setValue(movimentacaoSalva);
+        /*if (movimentacaoSalva.getTipoFaturamento().equals("parcelado")) salvarMovimentacaoParcelada(movimentacaoSalva, idMov);
+        else movimentacoesData.child(idMov).setValue(movimentacaoSalva);*/
+
+        switch (movimentacaoSalva.getTipoFaturamento()){
+            case "parcelado":
+            case "recorrente":
+                salvarMovimentacaoParcelada(movimentacaoSalva, idMov, null);
+
+                break;
+            case "aVista":
+                movimentacoesData.child(idMov).setValue(movimentacaoSalva);
+
+                break;
+        }
     }
 
-    public void salvarMovimentacao(List<Movimentacao> movimentacaoSalva, List<String> datas){
+    public void salvarMovimentacao(List<Movimentacao> movimentacaoSalva, List<String> datas, Grupo grupo){ //Cosntrutor para salvar listas de movimentacoes
 
         String dataMov, idMov;
         //Trata campo data para agrupar em ano, mes e dia
         Log.i("Data Mov", movimentacaoSalva.get(0).getDataTarefa());
         dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.get(0).getDataTarefa());
         //Chamada do método que retorna instancia do BD e nó de Movimentacao
-        DatabaseReference movimentacoes = getDatabaseMovimentacaoInstance();
+        DatabaseReference movimentacoes;
+        DatabaseReference movimentacoesData;
+        if (grupo == null) movimentacoes = getDatabaseMovimentacaoInstance();
+        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo); //Ano + mês
         //Modificação do método utilizado para agrupar em datas agora
-        DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
+        movimentacoesData = movimentacoes.child(dataMov);
         //Grava ID da MOV que será reutilizada em todos os meses
         idMov = movimentacoesData.push().getKey();
 
-     /*   for ( Movimentacao movimentacao : movimentacaoSalva ){
-            //Formata uma nova data, para cada parcela
-            String dataMovimentacao = DateCustom.firebaseFormatDate(movimentacao.getDataTarefa());
-            //Cria uma nova referencia, para cada parcela
-            DatabaseReference movParceladoRef = getDatabaseMovimentacaoInstance().child(dataMovimentacao).child(idMov);
-            //Insere parcela, que terá mesmo ID
-            movParceladoRef.setValue(movimentacao);
-            Log.i("Parcelado", "No DAO - " + "Parcela: " + movimentacao.getParcelaAtual() + ", Item: " + movimentacao.getDescTarefa());
-            Log.i("Parcelado", "Tamanho da lista: " + movimentacaoSalva.size() );
-        }*/
      int i;
 
      for (i = 0; i< movimentacaoSalva.size(); i++){
          //Formata uma nova data, para cada parcela
          String dataMovimentacao = DateCustom.firebaseFormatDate(datas.get(i));
          movimentacaoSalva.get(i).setDataTarefa(datas.get(i));
-         movimentacaoSalva.get(i).setParcelaAtual(i + 1);
+         if (movimentacaoSalva.get(i).getTipoFaturamento().equals("parcelado")) movimentacaoSalva.get(i).setParcelaAtual(i + 1);
          //Cria uma nova referencia, para cada parcela
-         DatabaseReference movParceladoRef = getDatabaseMovimentacaoInstance().child(dataMovimentacao).child(idMov);
+         DatabaseReference movParceladoRef;
+         if (grupo == null) movParceladoRef = getDatabaseMovimentacaoInstance().child(dataMovimentacao).child(idMov);
+         else movParceladoRef = getDatabaseMovimentacaoInstanceGrupo(grupo).child(dataMovimentacao).child(idMov);
          //Insere parcela, que terá mesmo ID
          movParceladoRef.setValue(movimentacaoSalva.get(i));
-         Log.i("Parcelado", "No DAO - " + "Parcela: " + movimentacaoSalva.get(i).getParcelaAtual() + ", Item: " + movimentacaoSalva.get(i).getDescTarefa());
+//         Log.i("Parcelado", "No DAO - " + "Parcela: " + movimentacaoSalva.get(i).getParcelaAtual() + ", Item: " + movimentacaoSalva.get(i).getDescTarefa());
      }
 
-        Log.i("Parcelado", "Tamanho da lista: " + movimentacaoSalva.size() );
+//        Log.i("Parcelado", "Tamanho da lista: " + movimentacaoSalva.size() );
 
 
 
     }
 
-    private void salvarMovimentacaoParcelada(Movimentacao movimentacao, String id){
+    private void salvarMovimentacaoParcelada(Movimentacao movimentacao, String id, Grupo grupo){
         int parcelaTotal = movimentacao.getParcelaTotal();
         String data[] = DateCustom.firebaseFormatDateBuild(movimentacao.getDataTarefa());
 
@@ -136,7 +157,10 @@ public class MovimentacoesDAO {
                 String anoParcela = String.valueOf(ano);
                 if (mes < 10) mesParcela = "0" + mes;
 
-                DatabaseReference dbRef = getDatabaseMovimentacaoInstance().child(anoParcela + "/" + mesParcela); //Ano + mês
+                DatabaseReference dbRef;
+
+                if (grupo == null)  dbRef = getDatabaseMovimentacaoInstance().child(anoParcela + "/" + mesParcela); //Ano + mês
+                else dbRef = getDatabaseMovimentacaoInstanceGrupo(grupo).child(anoParcela + "/" + mesParcela); //Ano + mês
                 dbRef.child(id).setValue(movimentacao);
                 Log.i("Parcelado", "Parcelas: " + mes + "/" + ano);
 
@@ -411,7 +435,7 @@ public class MovimentacoesDAO {
 
 
 
-    public Boolean salvarMovimentacao(Movimentacao movimentacaoSalva, Grupo grupo){
+   /* public Boolean salvarMovimentacao(Movimentacao movimentacaoSalva, Grupo grupo){
 
         String dataMov;
         //Trata campo data para agrupar em ano, mes e dia
@@ -422,7 +446,7 @@ public class MovimentacoesDAO {
         DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
         //Cria uma Pk e insere os dados de um usuário ao BD
         return movimentacoesData.push().setValue(movimentacaoSalva).isSuccessful();
-    }
+    }*/
 
     private DatabaseReference getDatabaseMovimentacaoInstanceGrupo(Grupo grupo){
 

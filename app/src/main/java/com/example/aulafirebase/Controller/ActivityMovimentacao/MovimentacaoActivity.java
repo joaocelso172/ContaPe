@@ -110,9 +110,10 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
     public void adicionarReceita(View view){
 
-        Intent intentGanho = new Intent(this, AddGanhoActivity.class);
+        Intent intentGanho = new Intent(this, AddDespesaActivity.class);
         intentGanho.putExtra("ano", anoSel);
         intentGanho.putExtra("mes", mesSel);
+        intentGanho.putExtra("tipo", "r");
         if (recuperaBundle()) intentGanho.putExtra("grupo", grupoUsuario);
         startActivity(intentGanho);
     }
@@ -122,6 +123,7 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
         Intent intentDespesa = new Intent(this, AddDespesaActivity.class);
         intentDespesa.putExtra("ano", anoSel);
         intentDespesa.putExtra("mes", mesSel);
+        intentDespesa.putExtra("tipo", "d");
         if (recuperaBundle()) intentDespesa.putExtra("grupo", grupoUsuario);
         startActivity(intentDespesa);
     }

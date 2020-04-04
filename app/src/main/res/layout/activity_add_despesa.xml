@@ -12,12 +12,12 @@
         android:id="@+id/btnSalvarDespesa"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
-        android:layout_marginTop="236dp"
+        android:layout_marginBottom="136dp"
         android:text="Salvar"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.479"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/checkParcelaDesp" />
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <EditText
         android:id="@+id/edValorDespesa"
@@ -27,7 +27,7 @@
         android:layout_marginTop="28dp"
         android:layout_marginEnd="16dp"
         android:ems="10"
-        android:hint="Valor do Despesa"
+        android:hint="Valor da Movimentação"
         android:inputType="number|numberDecimal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -39,7 +39,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -50,8 +50,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:hint="Descrição da Despesa"
+        android:hint="Descrição da Movimentação"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         mask:layout_constraintTop_toBottomOf="@+id/spinnerDespAtribuida">
@@ -67,8 +68,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="168dp"
+        app:helperTextEnabled="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textInputLayout2">
@@ -76,15 +78,16 @@
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edDataDespesa"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Data da Despesa" />
+            android:layout_height="wrap_content" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginEnd="8dp"
-        android:hint="Hora da Despesa"
+        android:hint="Hora da Compensação"
+        app:helperText="Caso tenha, insira a hora que será compensado o item"
+        app:helperTextEnabled="true"
         mask:layout_constraintBottom_toBottomOf="@+id/tilData"
         mask:layout_constraintEnd_toEndOf="parent"
         mask:layout_constraintStart_toEndOf="@+id/tilData"
@@ -122,23 +125,10 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:text="Responsável pela Despesa"
+        android:text="Responsável pela Movimentação"
         mask:layout_constraintEnd_toEndOf="parent"
         mask:layout_constraintStart_toStartOf="parent"
         mask:layout_constraintTop_toBottomOf="@+id/edValorDespesa" />
-
-    <CheckBox
-        android:id="@+id/checkParcelaDesp"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:text="Parcelar Despesa"
-        mask:layout_constraintEnd_toEndOf="parent"
-        mask:layout_constraintHorizontal_bias="0.434"
-        mask:layout_constraintStart_toStartOf="parent"
-        mask:layout_constraintTop_toBottomOf="@+id/spinnerCatDespesa" />
 
     <LinearLayout
         android:id="@+id/linearParcelasDesp"
@@ -153,7 +143,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/checkParcelaDesp"
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
         app:layout_constraintVertical_bias="0.0">
 
         <EditText
@@ -168,24 +158,54 @@
             android:numeric="integer" />
 
         <TextView
-            android:id="@+id/textView5"
+            android:id="@+id/txtParcelas"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="5"
             android:fontFamily="sans-serif-condensed-medium"
             android:gravity="center"
-            android:text="parcelas"
-            android:textSize="18sp" />
-
-        <Spinner
-            android:id="@+id/spinnerTipoParcelaDesp"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="5"
-            android:fontFamily="sans-serif-condensed-medium"
             android:textSize="18sp" />
 
     </LinearLayout>
+
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.426"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerCatDespesa"
+        app:layout_constraintVertical_bias="0.0">
+
+        <RadioButton
+            android:id="@+id/radioVista"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1.2"
+            android:checked="true"
+            android:text="À Vista" />
+
+        <RadioButton
+            android:id="@+id/radioParcela"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:checked="false"
+            android:text="Parcelar Despesa" />
+
+        <RadioButton
+            android:id="@+id/radioRecorrente"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Movimentação Recorrente" />
+    </RadioGroup>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
