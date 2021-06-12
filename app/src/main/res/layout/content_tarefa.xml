@@ -11,9 +11,10 @@
 
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintValor"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:background="@color/colorPrimary"
+        android:background="@color/fui_bgPhone"
         android:orientation="vertical">
 
         <TextView
@@ -21,6 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:gravity="center"
             android:textSize="36sp"
@@ -80,6 +82,15 @@
             app:layout_constraintTop_toBottomOf="@+id/txtSaldo"
             app:layout_constraintVertical_bias="0.0"
             app:srcCompat="@drawable/ic_person_add_white_24dp" />
+
+        <TextView
+            android:id="@+id/txtRemanescente"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/txtSaldo"
+            app:layout_constraintEnd_toEndOf="@+id/txtCustoMensal"
+            app:layout_constraintStart_toStartOf="@+id/txtReceitaMensal"
+            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

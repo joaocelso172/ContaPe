@@ -7,6 +7,7 @@
     android:orientation="horizontal"
     tools:context=".Controller.ActivityGrupos.ListarGruposActivity">
 
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rGrupos"
         android:layout_width="match_parent"

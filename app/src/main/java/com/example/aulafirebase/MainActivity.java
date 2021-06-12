@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     //Variavel referente a lista de tarefas que alimentará o recycler
     private final List<Movimentacao> listaMovimentacaos = new ArrayList<>();
     //Variavel que recupera um objeto TarefaAdapter
-    private MovimentacoesAdapter movimentacoesAdapter = new MovimentacoesAdapter(listaMovimentacaos, this);
+    private MovimentacoesAdapter movimentacoesAdapter = new MovimentacoesAdapter(listaMovimentacaos, this, null);
     //Variavel de autentificacao para puxar usuário logado e deslogar
     private FirebaseAuth mAuth;
     //Variavel que vai receber o usuário, mUser = mAuth.getCurrentUser();

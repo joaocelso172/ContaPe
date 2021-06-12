@@ -97,7 +97,7 @@ public class GrupoDAO {
 
     }
 
-    public void retornarIntegrantes(Grupo grupo,List<String> listEmail, ArrayAdapter<String> arrayAdapter){
+    public void retornarIntegrantes(Grupo grupo, List<String> listEmail, ArrayAdapter<String> arrayAdapter){
 
 
         gruposRef.child(grupo.getGrupoId()).child("membros").addListenerForSingleValueEvent(new ValueEventListener() {

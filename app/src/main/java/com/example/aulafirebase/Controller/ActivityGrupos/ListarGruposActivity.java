@@ -1,12 +1,17 @@
 package com.example.aulafirebase.Controller.ActivityGrupos;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ProgressBar;
@@ -14,12 +19,15 @@ import android.widget.TextView;
 
 import com.example.aulafirebase.Adapter.GrupoAdapter;
 import com.example.aulafirebase.BundleRecuperado;
+import com.example.aulafirebase.Controller.ActivityLogin.LoginActivity;
+import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.UsuarioGrupoDAO;
 import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Controller.ActivityMovimentacao.MovimentacaoActivity;
 import com.example.aulafirebase.R;
 import com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig;
 import com.example.aulafirebase.helper.RecyclerItemClickListener;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -35,6 +43,7 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
     private TextView txtStatus;
     //Booleano que informa se o status já foi verificado no DAO
     private Boolean verificouDAO;
+    private FirebaseAuth auth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +58,54 @@ public class ListarGruposActivity extends AppCompatActivity implements Serializa
 
         itemClickListener();
         
+    }
+
+    private void telaCriarGrupo(){
+        Intent intentGrupo = new Intent(this, AddGrupoActivity.class);
+        startActivity(intentGrupo);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(R.id.menuListarGrupos);
+
+        item.setTitle("Home");
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_mov, menu);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.menuSair:
+                auth = FirebaseConfig.getFirebaseAuth();
+                auth.signOut();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+                break;
+            case R.id.menuCriarGrupos:
+                telaCriarGrupo();
+                finish();
+                break;
+            case R.id.menuListarGrupos:
+                telaHome();
+                finish();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void telaHome() {
+        Intent intentHome = new Intent(this, MovimentacaoActivity.class);
+        startActivity(intentHome);
     }
 
     @Override

@@ -68,16 +68,9 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         Toolbar toolbar = findViewById(R.id.toolbarLogin);
 
-        btnMov = findViewById(R.id.btnMov);
         btnFazerLogin = findViewById(R.id.btnLogin);
         pLogin = findViewById(R.id.progressLoadingGoogle);
 
-        btnMov.setOnClickListener(v -> {
-            loginGoogle.Logout();
-            Toast.makeText(LoginActivity.this, "Deslogado com sucesso!", Toast.LENGTH_SHORT).show();
-            btnFazerLogin.setVisibility(View.VISIBLE);
-            pLogin.setVisibility(View.GONE);
-        });
 
         btnFazerLogin.setOnClickListener(v -> {
             if (mAuth.getCurrentUser() == null) {

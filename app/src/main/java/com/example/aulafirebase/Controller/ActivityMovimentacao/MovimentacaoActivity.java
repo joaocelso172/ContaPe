@@ -1,35 +1,48 @@
 package com.example.aulafirebase.Controller.ActivityMovimentacao;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import com.example.aulafirebase.Adapter.MovimentacoesAdapter;
 import com.example.aulafirebase.BundleRecuperado;
 import com.example.aulafirebase.Controller.ActivityGrupos.AddGrupoActivity;
 import com.example.aulafirebase.Controller.ActivityGrupos.AddIntegranteGrupo;
+import com.example.aulafirebase.Controller.ActivityGrupos.ListarGruposActivity;
+import com.example.aulafirebase.Controller.ActivityLogin.LoginActivity;
+import com.example.aulafirebase.DAL.FirebaseConfig;
 import com.example.aulafirebase.DAL.MovimentacoesDAO;
 import com.example.aulafirebase.DAL.ResumoMensalDAO;
+import com.example.aulafirebase.DAL.UsuarioGrupoDAO;
 import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.ResumoMensal;
+import com.example.aulafirebase.Model.UsuarioGrupo;
 import com.example.aulafirebase.MovimentacaoListener;
 import com.example.aulafirebase.R;
 import com.example.aulafirebase.RecuperaBundle;
 import com.example.aulafirebase.RecyclerViewConfig.RecyclerViewConfig;
+import com.example.aulafirebase.helper.RecyclerItemClickListener;
+import com.google.firebase.auth.FirebaseAuth;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -37,6 +50,7 @@ import java.util.List;
 
 public class MovimentacaoActivity extends AppCompatActivity implements RecuperaBundle, BundleRecuperado, MovimentacaoListener {
 
+    private FirebaseAuth auth;
     //Calendario
     private MaterialCalendarView materialCalendarView;
     private MovimentacoesDAO movimentacoesDAO = new MovimentacoesDAO();
@@ -49,6 +63,8 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
     private String anoSel, mesSel, diaSel;
     //Lista de objetos movimentacao
     private List<Movimentacao> listaMov = new ArrayList<>();
+    private List<Grupo> listaGrupos = new ArrayList<>();
+    private List<Movimentacao> ListaMovGrupos = new ArrayList<>();
     //Objeto movimentacao
     private Movimentacao movimentacao;
     //Adapter recycler
@@ -56,11 +72,10 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
     //Alterar padrão de exibição
     private final DecimalFormat decimalFormat = new DecimalFormat("0.##");
     private ResumoMensalDAO resumoMensalDAO = new ResumoMensalDAO();
-    //Contador
-    int i = 0;
     private ResumoMensal resumoMensal;
 
     private Grupo grupoUsuario;
+    private Double receitaAnteriorD, despesaAnteriorD;
 
     private ImageButton imgBtnAddUsuario;
 
@@ -70,25 +85,20 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tarefa);
         Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
-
-        toolbar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                telaGrupo();
-            }
-        });
 
         if (!recuperaBundle()) {
-            toolbar.setTitle("Movimentações Individuais");
+            getSupportActionBar().setTitle("Movimentações");
         }else {
-            toolbar.setTitle(grupoUsuario.getNomeGrupo());
+            getSupportActionBar().setTitle(grupoUsuario.getNomeGrupo());
         }
 
         imgBtnAddUsuario = findViewById(R.id.imgBtnAddPessoa);
 
+
         //Instancia o adapter
-        movAdapter = new MovimentacoesAdapter(listaMov, getApplicationContext());
+        movAdapter = new MovimentacoesAdapter(listaMov, getApplicationContext(), grupoUsuario);
 
         //Calendário
         materialCalendarView = findViewById(R.id.materialCalendarMov);
@@ -107,6 +117,32 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_mov, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuSair:
+                auth = FirebaseConfig.getFirebaseAuth();
+                auth.signOut();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+                break;
+            case R.id.menuCriarGrupos:
+                telaCriarGrupo();
+                finish();
+                break;
+            case R.id.menuListarGrupos:
+                telaListaGrupo();
+                finish();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     public void adicionarReceita(View view){
 
@@ -134,8 +170,6 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
         if (!recuperaBundle()) {
             imgBtnAddUsuario.setVisibility(View.GONE );
-            //Ativa swipe
-            swipe();
             //Método que será chamado sempre para atualizar a lista/recycler
             configurarCalendarView(null);
             //Recupera valor do topo da página
@@ -147,8 +181,12 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
             configurarCalendarView(grupoUsuario);
             //Configura a recycler com os itens da lista
             //recuperaSaldo(grupoUsuario);
-
         }
+
+        //Ativa edição por click
+        editarMov(grupoUsuario);
+        //Ativa swipe
+        swipe(grupoUsuario);
 
         RecyclerViewConfig.ConfigurarRecycler(getApplicationContext(), rMov, movAdapter);
     }
@@ -199,8 +237,7 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
         //Se for menor que dez, adiciona zero
         if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
 
-        if (grupo == null) recuperarDadosMes(anoSel, mesSel);
-        else recuperarDadosMes(anoSel, mesSel, grupo);
+        recuperarDadosMes(anoSel, mesSel, grupo);
         Log.i("Logando", anoSel + "/" + mesSel);
 
         //Quando alterado o mês
@@ -211,38 +248,25 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
             //Se for menor que dez, adiciona zero
             if (Integer.parseInt(mesSel) < 10) mesSel = "0" + Integer.parseInt(mesSel);
             //Recupera os valores mensais
-            if (grupo == null) recuperarDadosMes(anoSel, mesSel);
-            else recuperarDadosMes(anoSel, mesSel, grupo);
+            recuperarDadosMes(anoSel, mesSel, grupo);
         });
     }
 
-    private void recuperarDadosMes(String ano, String mes){
+   /* private void recuperarDadosMes(String ano, String mes){
         //Consulta lista
         movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, movAdapter, this, findViewById(android.R.id.content));
-//        recuperarSaldoMensal(ano, mes);
+    }*/
 
+    private void recuperarDadosMes(String ano, String mes, Grupo grupo){
+        if (grupo == null) {
+            movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, movAdapter, this, findViewById(android.R.id.content));
 
-   /*     i=0;
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica conexão com internet
-                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                //Consulta lista
-                movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, movAdapter);
-//                if (movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes)) {
-                    if (!listaMov.isEmpty()) { //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
-                        //Puxa método que recupera saldo mensal com loading de 1seg
-                    } else {
-                        Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
-                    }
-                    recuperarSaldoMensal(ano, mes);
-//                    movAdapter.notifyDataSetChanged();
-//                }
-            }
-        }, 250);*/
+        }
+        else listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, grupo, movAdapter, MovimentacaoActivity.this, findViewById(android.R.id.content));
+    }
+
+    private void recuperarDadosGrupos(String ano, String mes, Grupo grupo) { //Método para recuperar as movimetnacoes de grupos deste usuário e exibir na home
+
     }
 
 
@@ -267,31 +291,7 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
     }
 
-    private void recuperarDadosMes(String ano, String mes, Grupo grupo){
-    //    listaMov = null;
-        //Consulta lista
-        listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, grupo, movAdapter, MovimentacaoActivity.this, findViewById(android.R.id.content));
-//        recuperarSaldoMensal(ano, mes, grupo);
-  /*      i=0;
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //Verifica conexão com internet
-                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                //Consulta lista
-                listaMov = movimentacoesDAO.listarMovimentacoes(listaMov, ano, mes, grupo, movAdapter);
-                if (!listaMov.isEmpty()){ //Quando não está vazia significa que foi recebido os valores da lista, se está vazia, ou os valores não foram recebidos ou a lista não retorna nada, se não retorna nada, o saldo deve ser 0
-                    //Puxa método que recupera saldo mensal com loading de 1seg
-                }else {
-                    Toast.makeText(MovimentacaoActivity.this, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
-                }
-                recuperarSaldoMensal(ano, mes, grupo);
-//                movAdapter.notifyDataSetChanged();
-            }
-        }, 350);*/
-    }
+
 
 
     //Construtor Grupo
@@ -338,7 +338,7 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
     }*/
 
-    private void swipe(){
+    private void swipe(Grupo grupo){
 
         ItemTouchHelper.Callback itemTouch = new ItemTouchHelper.Callback() {
             @Override
@@ -360,48 +360,97 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                 //Método que exclui item da lista e bd
-                excluirMov(viewHolder);
+                excluirMov(viewHolder, grupo);
             }
         };
 
         new ItemTouchHelper(itemTouch).attachToRecyclerView(rMov);
     }
 
-    private void excluirMov(RecyclerView.ViewHolder viewHolder){
+    private void editarMov(Grupo grupo){
+        rMov.addOnItemTouchListener(
+                new RecyclerItemClickListener(
+                        getApplicationContext(), rMov,
+                        new RecyclerItemClickListener.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(View view, int position) {
+                                iniciarDialogoEdição(position, grupo);
+
+                            }
+
+                            @Override
+                            public void onLongItemClick(View view, int position) {
+
+                            }
+
+                            @Override
+                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                            }
+                        }
+                )
+        );
+    }
+
+    private void iniciarDialogoEdição(int pos, Grupo grupo){
+
+        if ( (listaMov.get(pos).getAtribuicao() != null && grupo == null) ) {
+            Toast.makeText(this, "Esta movimentação é de um grupo, peça a um administrador para editar!", Toast.LENGTH_SHORT).show();
+        } else {
+            Intent intentEdit = new Intent(this, AddDespesaActivity.class);
+
+            intentEdit.putExtra("movEdit", listaMov.get(pos));
+            intentEdit.putExtra("grupo", grupo);
+            startActivity(intentEdit);
+        }
+    }
+
+    private void excluirMov(RecyclerView.ViewHolder viewHolder, Grupo grupo) {
 
         AlertDialog.Builder alertDialogExcluir = new AlertDialog.Builder(this);
+        //Pega posição do item alterado na lista
+        int position = viewHolder.getAdapterPosition();
+        //Pega o objeto específico na lista
+        movimentacao = listaMov.get(position);
+        if ( (movimentacao.getAtribuicao() != null && grupo == null) ) {
+            Toast.makeText(this, "Esta movimentação é de um grupo, peça a um administrador para excluir!", Toast.LENGTH_SHORT).show();
+            movAdapter.notifyDataSetChanged();
+        } else {
+            //Configurando AlertDialog
+            alertDialogExcluir.setTitle("Excluir movimentação");
+            alertDialogExcluir.setMessage("Você tem certeza de que deseja excluir movimentação?\nEsta ação não pode ser revertida.");
+            alertDialogExcluir.setCancelable(false);
 
-        //Configurando AlertDialog
-        alertDialogExcluir.setTitle("Excluir movimentação");
-        alertDialogExcluir.setMessage("Você tem certeza de que deseja excluir movimentação?\nEsta ação não pode ser revertida.");
-        alertDialogExcluir.setCancelable(false);
-        //Configurando botões
-        alertDialogExcluir.setPositiveButton("Excluir", (dialog, which) -> {
-            //Pega posição do item alterado na lista
-            int position = viewHolder.getAdapterPosition();
-            //Pega o objeto específico na lista
-            movimentacao = listaMov.get(position);
-            //Chama método DAO de exclusão
-            movimentacoesDAO.removerMovimentacao(movimentacao, movAdapter, position);
-            //Remove item da lista
-            listaMov.remove(position);
-            //Atualiza saldo
-            atualizarSaldo(movimentacao);
-            //Notifica o recycler da exclusão
-//            movAdapter.notifyItemRemoved(position);
+            //Configurando botões
+            if (!movimentacao.getTipoFaturamento().equals("aVista")) {
+                alertDialogExcluir.setPositiveButton("Excluir todas as parcelas", (dialog, which) -> {
+                    //Chama método DAO de exclusão
+                    movimentacoesDAO.recuperarMovFuturas(movimentacao, movAdapter, position, grupo);
+                    notifyMovimentacaoRemoved(position);
 
-        });
+                });
+            }
 
-        alertDialogExcluir.setNegativeButton("Cancelar", (dialog, which) -> movAdapter.notifyDataSetChanged());
+            alertDialogExcluir.setNegativeButton("Excluir", (dialog, which) -> {
+                //Chama método DAO de exclusão
+                movimentacoesDAO.removerMovimentacao(movimentacao, movAdapter, position, grupo);
+                notifyMovimentacaoRemoved(position);
 
-        alertDialogExcluir.show();
+            });
+
+
+            alertDialogExcluir.setNeutralButton("Cancelar", (dialog, which) -> movAdapter.notifyDataSetChanged());
+
+            alertDialogExcluir.show();
+        }
 
     }
 
-    public void notifyMovimentacaoRemoved(){
-
-
-
+    private void notifyMovimentacaoRemoved(int pos){
+        //Remove item da lista
+        listaMov.remove(pos);
+        //Atualiza saldo
+        calcularRendaMensal(null, listaMov, findViewById(android.R.id.content));
 
     }
 
@@ -409,7 +458,7 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
      //   resumoMensal = resumoMensalDAO.getResumoMensal();
 
-    if (movimentacao.getTipo().equals("r")){
+   /* if (movimentacao.getTipo().equals("r")){
             //Atualiza saldo geral
             Double receitaAtualizada = movimentacoesDAO.getReceitaTotal() - movimentacao.getValor();
             movimentacoesDAO.atualizarReceita(receitaAtualizada);
@@ -423,20 +472,25 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
             saldoFinal += movimentacao.getValor();
             //Atualiza saldo mensal
 //            resumoMensal.setDespesaMensal(resumoMensal.getDespesaMensal() - movimentacao.getValor());
-        }
+        }*/
 /*        resumoMensal.setSaldoMensal(resumoMensal.getReceitaMensal() - resumoMensal.getDespesaMensal());
 
         resumoMensalDAO.setResumoMensal(resumoMensal);
 
         movimentacoesDAO.atualizarSaldo(saldoFinal);*/
 
-        calcularRendaMensal(listaMov, findViewById(android.R.id.content));
+        calcularRendaMensal(null, listaMov, findViewById(android.R.id.content));
 
 //        recuperarSaldoMensal(anoSel, mesSel);
     }
 
-    private void telaGrupo(){
+    private void telaCriarGrupo(){
         Intent intentGrupo = new Intent(this, AddGrupoActivity.class);
+        startActivity(intentGrupo);
+    }
+
+    private void telaListaGrupo(){
+        Intent intentGrupo = new Intent(this, ListarGruposActivity.class);
         startActivity(intentGrupo);
     }
 
@@ -465,21 +519,54 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
     }
 
-    public void calcularRendaMensal(List<Movimentacao> listaMovimentacoes, View view){
+    public void setarLoading (View view){
+        ProgressBar progressBarSaldo = view.findViewById(R.id.progressBarSaldo);
+        progressBarSaldo.setVisibility(View.VISIBLE);
 
         TextView txtReceitaMensal;
         TextView txtDespesaMensal;
         TextView txtSaldo;
+        txtSaldo = view.findViewById(R.id.txtSaldo);
+        txtDespesaMensal = view.findViewById(R.id.txtCustoMensal);
+        txtReceitaMensal = view.findViewById(R.id.txtReceitaMensal);
+        txtReceitaMensal.setText("");
+        txtDespesaMensal.setText("");
+        txtSaldo.setText("");
+    }
+
+    public Double calcularRendaAnterior(List<Movimentacao> listaMovimentacoes){
+
+        Double receitaAnterior = 0.0, despesaAnterior = 0.0;
+
+        for ( Movimentacao mov : listaMovimentacoes ){
+
+            if (mov.getTipo().equals("r")) receitaAnterior = receitaAnterior + mov.getValor();
+            else if (mov.getTipo().equals("d")) despesaAnterior = despesaAnterior + mov.getValor();
+
+        }
+
+        return receitaAnterior - despesaAnterior;
+
+    }
+
+    public void calcularRendaMensal(Double valorAntigo, List<Movimentacao> listaMovimentacoes, View view){
+
+        TextView txtRemanescente = view.findViewById(R.id.txtRemanescente);
+       // if ( !valorAntigo.equals(null) ) txtRemanescente.setText("Remanescente:\nR$ " + valorAntigo);
+        TextView txtReceitaMensal;
+        TextView txtDespesaMensal;
+        TextView txtSaldo;
+        ConstraintLayout constraintValor;
         ProgressBar progressBarSaldo;
         progressBarSaldo = view.findViewById(R.id.progressBarSaldo);
         txtSaldo = view.findViewById(R.id.txtSaldo);
         txtDespesaMensal = view.findViewById(R.id.txtCustoMensal);
         txtReceitaMensal = view.findViewById(R.id.txtReceitaMensal);
+        constraintValor = view.findViewById(R.id.constraintValor);
 
         txtReceitaMensal.setText("");
         txtDespesaMensal.setText("");
         txtSaldo.setText("");
-//        progressBarSaldo.setVisibility(View.VISIBLE);
 
         Double despesaTotalMes = 0.0, receitaTotalMes = 0.0;
 
@@ -490,10 +577,16 @@ public class MovimentacaoActivity extends AppCompatActivity implements RecuperaB
 
         }
 
+        if ( (receitaTotalMes - despesaTotalMes) < 0) constraintValor.setBackgroundColor(Color.rgb(252, 137, 81));
+        else constraintValor.setBackgroundColor(Color.rgb(67, 197, 165));
+
         progressBarSaldo.setVisibility(View.GONE);
         txtReceitaMensal.setText("Receita:\nR$ " + decimalFormat.format(receitaTotalMes));
         txtDespesaMensal.setText("Despesa:\nR$ " + decimalFormat.format(despesaTotalMes));
-        txtSaldo.setText("R$ " + decimalFormat.format(receitaTotalMes - despesaTotalMes));
+
+        Double valor = receitaTotalMes - despesaTotalMes;
+        if (valor >= 0) txtSaldo.setText("  R$ " + decimalFormat.format(valor));
+        else txtSaldo.setText("- R$ " + decimalFormat.format(valor*-1));
 
 
     }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal">
@@ -10,6 +11,16 @@
         android:orientation="vertical">
 
         <TextView
+            android:id="@+id/txtNomeGrupo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/design_default_color_primary_dark"
+            android:textSize="16sp"
+            android:textStyle="bold|italic"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/txtDescTarefa"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -17,6 +28,12 @@
             android:text="Descrição da Conta"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtDataMov"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="Data" />
 
         <TextView
             android:id="@+id/txtNomeTarefa"
@@ -48,12 +65,28 @@
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/txtValor"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="start|center_vertical"
-        android:text="Valor"
-        android:textAllCaps="false" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txtValor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="start|center_vertical"
+            android:text="Valor"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:id="@+id/imgFav"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            app:srcCompat="@android:drawable/btn_star_big_on" />
+
+    </LinearLayout>
 
 </LinearLayout>

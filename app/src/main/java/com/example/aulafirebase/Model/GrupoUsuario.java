@@ -4,7 +4,15 @@ public class GrupoUsuario {
 
     private String nomeUsuario, emailUsuario;
 
-    private Boolean adm;
+    private Boolean adm, aparecerFeed;
+
+    public Boolean getAparecerFeed() {
+        return aparecerFeed;
+    }
+
+    public void setAparecerFeed(Boolean aparecerFeed) {
+        this.aparecerFeed = aparecerFeed;
+    }
 
     public String getNomeUsuario() {
         return nomeUsuario;

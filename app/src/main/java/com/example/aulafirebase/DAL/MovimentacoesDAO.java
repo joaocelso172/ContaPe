@@ -13,6 +13,7 @@ import com.example.aulafirebase.Controller.ActivityMovimentacao.MovimentacaoActi
 import com.example.aulafirebase.Model.Grupo;
 import com.example.aulafirebase.Model.Movimentacao;
 import com.example.aulafirebase.Model.Usuario;
+import com.example.aulafirebase.Model.UsuarioGrupo;
 import com.example.aulafirebase.helper.Base64Custom;
 import com.example.aulafirebase.helper.DateCustom;
 import com.google.firebase.auth.FirebaseAuth;
@@ -43,28 +44,13 @@ public class MovimentacoesDAO {
     private Double alerta = null;
     //Referencia às tarefas, com listener
     private DatabaseReference tarefas;
-    private Boolean status;
+    private DatabaseReference gruposUsuario;
+    private DatabaseReference gruposMovimentacoes;
+    private int status;
 
-    public Boolean getStatus() {
-        return status;
-    }
-
-    public void setStatus(Boolean status) {
-        this.status = status;
-    }
 
     public void salvarMovimentacao(Movimentacao movimentacaoSalva, Grupo grupo){
 
-
-        /*String dataMov;
-        //Trata campo data para agrupar em ano, mes e dia
-        dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.getDataTarefa());
-        //Chamada do método que retorna instancia do BD e nó de Movimentacao
-        DatabaseReference movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
-        //Modificação do método utilizado para agrupar em datas agora
-        DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
-        //Cria uma Pk e insere os dados de um usuário ao BD
-        return movimentacoesData.push().setValue(movimentacaoSalva).isSuccessful();*/
 
         String dataMov, idMov;
         //Trata campo data para agrupar em ano, mes e dia
@@ -72,35 +58,26 @@ public class MovimentacoesDAO {
         dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.getDataTarefa());
         DatabaseReference movimentacoes;
         //Chamada do método que retorna instancia do BD e nó de Movimentacao
-        if (grupo == null)  movimentacoes = getDatabaseMovimentacaoInstance();
-        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
+        if (grupo == null) {
+            movimentacoes = getDatabaseMovimentacaoInstance();
+            Log.i("Grupo nulo", "grupo nulo");
+        }
+        else {
+            movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
+            Log.i("Grupo nulo", "grupo encontrado, " + grupo.getGrupoId());
+        }
             //Modificação do método utilizado para agrupar em datas agora
             DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
             //Grava ID da MOV
             idMov = movimentacoesData.push().getKey();
 
-        //Cria uma Pk e insere os dados de um usuário ao BD
-        /*if (movimentacaoSalva.getTipoFaturamento().equals("parcelado")) salvarMovimentacaoParcelada(movimentacaoSalva, idMov);
-        else movimentacoesData.child(idMov).setValue(movimentacaoSalva);*/
-
-        switch (movimentacaoSalva.getTipoFaturamento()){
-            case "parcelado":
-            case "recorrente":
-                salvarMovimentacaoParcelada(movimentacaoSalva, idMov, null);
-
-                break;
-            case "aVista":
-                movimentacoesData.child(idMov).setValue(movimentacaoSalva);
-
-                break;
-        }
+            movimentacoesData.child(idMov).setValue(movimentacaoSalva);
     }
 
     public void salvarMovimentacao(List<Movimentacao> movimentacaoSalva, List<String> datas, Grupo grupo){ //Cosntrutor para salvar listas de movimentacoes
 
         String dataMov, idMov;
         //Trata campo data para agrupar em ano, mes e dia
-        Log.i("Data Mov", movimentacaoSalva.get(0).getDataTarefa());
         dataMov = DateCustom.firebaseFormatDate(movimentacaoSalva.get(0).getDataTarefa());
         //Chamada do método que retorna instancia do BD e nó de Movimentacao
         DatabaseReference movimentacoes;
@@ -110,7 +87,8 @@ public class MovimentacoesDAO {
         //Modificação do método utilizado para agrupar em datas agora
         movimentacoesData = movimentacoes.child(dataMov);
         //Grava ID da MOV que será reutilizada em todos os meses
-        idMov = movimentacoesData.push().getKey();
+        if (movimentacaoSalva.get(0).getID() == null) idMov = movimentacoesData.push().getKey();
+        else idMov = movimentacaoSalva.get(0).getID();
 
      int i;
 
@@ -125,14 +103,61 @@ public class MovimentacoesDAO {
          else movParceladoRef = getDatabaseMovimentacaoInstanceGrupo(grupo).child(dataMovimentacao).child(idMov);
          //Insere parcela, que terá mesmo ID
          movParceladoRef.setValue(movimentacaoSalva.get(i));
-//         Log.i("Parcelado", "No DAO - " + "Parcela: " + movimentacaoSalva.get(i).getParcelaAtual() + ", Item: " + movimentacaoSalva.get(i).getDescTarefa());
      }
 
-//        Log.i("Parcelado", "Tamanho da lista: " + movimentacaoSalva.size() );
+    }
 
+    public void atualizarMovimentacao (Movimentacao movimentacaoAtualizada, Grupo grupo){
+        String dataMov, idMov;
+        //Trata campo data para agrupar em ano, mes e dia
+        Log.i("Data Mov", movimentacaoAtualizada.getDataTarefa());
+        dataMov = DateCustom.firebaseFormatDate(movimentacaoAtualizada.getDataTarefa());
+        DatabaseReference movimentacoes;
+        //Chamada do método que retorna instancia do BD e nó de Movimentacao
+        if (grupo == null) movimentacoes = getDatabaseMovimentacaoInstance();
+        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
+        //Modificação do método utilizado para agrupar em datas agora
+        DatabaseReference movimentacoesData = movimentacoes.child(dataMov);
+        //Grava ID da MOV
+        idMov = movimentacaoAtualizada.getID();
 
+        movimentacoesData.child(idMov).setValue(movimentacaoAtualizada);
 
     }
+
+    public void atualizarMovimentacao (List <Movimentacao> movimentacaoAtualizada,List<String> datas, Grupo grupo){
+
+        String dataMov, idMov;
+        //Trata campo data para agrupar em ano, mes e dia
+        dataMov = DateCustom.firebaseFormatDate(movimentacaoAtualizada.get(0).getDataTarefa());
+        //Chamada do método que retorna instancia do BD e nó de Movimentacao
+        DatabaseReference movimentacoes;
+        DatabaseReference movimentacoesData;
+        if (grupo == null) movimentacoes = getDatabaseMovimentacaoInstance();
+        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo); //Ano + mês
+        //Modificação do método utilizado para agrupar em datas agora
+        movimentacoesData = movimentacoes.child(dataMov);
+        //Grava ID da MOV que será reutilizada em todos os meses
+        idMov = movimentacaoAtualizada.get(0).getID();
+
+        int i;
+
+        for (i = 0; i< movimentacaoAtualizada.size(); i++){
+            //Formata uma nova data, para cada parcela
+            String dataMovimentacao = DateCustom.firebaseFormatDate(datas.get(i));
+            movimentacaoAtualizada.get(i).setDataTarefa(datas.get(i));
+            movimentacaoAtualizada.get(i).setParcelaAtual(i + 1);
+            //Cria uma nova referencia, para cada parcela
+            DatabaseReference movParceladoRef;
+            if (grupo == null) movParceladoRef = getDatabaseMovimentacaoInstance().child(dataMovimentacao).child(idMov);
+            else movParceladoRef = getDatabaseMovimentacaoInstanceGrupo(grupo).child(dataMovimentacao).child(idMov);
+            //Insere parcela, que terá mesmo ID
+            movParceladoRef.setValue(movimentacaoAtualizada.get(i));
+        }
+
+    }
+
+
 
     private void salvarMovimentacaoParcelada(Movimentacao movimentacao, String id, Grupo grupo){
         int parcelaTotal = movimentacao.getParcelaTotal();
@@ -168,19 +193,28 @@ public class MovimentacoesDAO {
 
     }
 
-    public Boolean listarMovimentacoes(List<Movimentacao> listaMovimentacao, String ano, String mes, MovimentacoesAdapter movimentacoesAdapter, Context c, View view){
-        status = false;
+    public void listarMovimentacoes(List<Movimentacao> listaMovimentacao, String ano, String mes, MovimentacoesAdapter movimentacoesAdapter, Context c, View view){
+        status = 0;
 
+        FirebaseAuth mAuth = FirebaseConfig.getFirebaseAuth();
+        MovimentacaoActivity movimentacaoActivity = new MovimentacaoActivity();
+
+        Double valorAnterior = movimentacaoActivity.calcularRendaAnterior(listaMovimentacao);
+
+        gruposUsuario = refenciaDb.child("usuarios").child(Base64Custom.codificarBase64(mAuth.getCurrentUser().getEmail())).child("UsuarioGrupo");
         tarefas = getDatabaseMonthMovInstance(ano, mes);
 
         tarefas.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
-                if (!dataSnapshot.exists()) Toast.makeText(c, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
-
                 //Limpa lista
                 listaMovimentacao.clear();
+
+                if (!dataSnapshot.exists()) {
+                    movimentacoesAdapter.notifyDataSetChanged();
+                    status++;
+                }
 
                 //Para cada informação disponivel, executa looping
                 for(DataSnapshot dados: dataSnapshot.getChildren()){
@@ -189,15 +223,16 @@ public class MovimentacoesDAO {
                         movimentacao.setID(dados.getKey());
                         listaMovimentacao.add(movimentacao);
 
-                        if (listaMovimentacao.size() == dataSnapshot.getChildrenCount()) status = true;
-                        else status = false;
+//                        if (listaMovimentacao.size() == dataSnapshot.getChildrenCount()) status++;
                     }
+
+                    status++;
 
                 }
 
-                MovimentacaoActivity movimentacaoActivity = new MovimentacaoActivity();
+
                 movimentacoesAdapter.notifyDataSetChanged();
-                movimentacaoActivity.calcularRendaMensal(listaMovimentacao, view);
+                movimentacaoActivity.calcularRendaMensal(0.0, listaMovimentacao, view);
 
             }
 
@@ -209,21 +244,83 @@ public class MovimentacoesDAO {
 
         });
 
+        gruposUsuario.addListenerForSingleValueEvent(new ValueEventListener() { //procura por mov nos grupos
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
+                if (!dataSnapshot.exists()) {
+                    movimentacoesAdapter.notifyDataSetChanged();
+                    movimentacaoActivity.calcularRendaMensal(valorAnterior, listaMovimentacao, view);
+                }
+
+                //Para cada informação disponivel, executa looping
+                for(DataSnapshot dadosGrupos: dataSnapshot.getChildren()){
+                    UsuarioGrupo usuarioGrupo = dadosGrupos.getValue(UsuarioGrupo.class);
+                    if (usuarioGrupo.getReceberMovFeed() == null){
+                        gruposMovimentacoes = getDatabaseMonthMovInstanceGrupo(ano, mes, usuarioGrupo.getGrupoIdUsuario());
+                        gruposMovimentacoes.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                for (DataSnapshot movGrupo : dataSnapshot.getChildren()){ //EventListener de grupo
+                                    Movimentacao movimentacaoGrupo = movGrupo.getValue(Movimentacao.class);
+                                    if (movimentacaoGrupo.getTipo() != null && movimentacaoGrupo.getAtribuicao() != null && movimentacaoGrupo.getAtribuicao().equals(mAuth.getCurrentUser().getEmail())) {
+                                        if ( (movimentacaoGrupo.getTipo().equals("r") && movimentacaoGrupo.getInverso().equals(true))) {
+                                            movimentacaoGrupo.setTipo("d");
+                                        }else if ((movimentacaoGrupo.getTipo().equals("d") && movimentacaoGrupo.getInverso().equals(true))) movimentacaoGrupo.setTipo("r");
+                                        movimentacaoGrupo.setID(movGrupo.getKey());
+                                        listaMovimentacao.add(movimentacaoGrupo);
+
+                                    }
+                                }
+
+                                status++;
+
+                                movimentacoesAdapter.notifyDataSetChanged();
+                                movimentacaoActivity.calcularRendaMensal(valorAnterior, listaMovimentacao, view);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+
+                }
+
+                       /* movimentacoesAdapter.notifyDataSetChanged();
+                        movimentacaoActivity.calcularRendaMensal(listaMovimentacao, view);
+                        Toast.makeText(c, "rodou", Toast.LENGTH_SHORT).show();
+
+                        Toast.makeText(c, "Status: " + status, Toast.LENGTH_SHORT).show();*/
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
 
 
-        return status;
     }
 
     public List<Movimentacao> listarMovimentacoes(List<Movimentacao> listaMovimentacao, String ano, String mes, Grupo grupo, MovimentacoesAdapter movimentacoesAdapter, Context c, View view){
 
         tarefas = getDatabaseMonthMovInstanceGrupo(ano, mes, grupo);
 
+        MovimentacaoActivity movimentacaoActivity = new MovimentacaoActivity();
+
+        Double valorAnterior = movimentacaoActivity.calcularRendaAnterior(listaMovimentacao);
+
         tarefas.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
 
-                if (!dataSnapshot.exists()) Toast.makeText(c, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
+//                if (!dataSnapshot.exists()) Toast.makeText(c, "Não há movimentações para este período", Toast.LENGTH_SHORT).show();
+
+                movimentacaoActivity.calcularRendaAnterior(listaMovimentacao);
 
                 //Limpa lista
                 listaMovimentacao.clear();
@@ -240,7 +337,7 @@ public class MovimentacoesDAO {
 
                 MovimentacaoActivity movimentacaoActivity = new MovimentacaoActivity();
                 movimentacoesAdapter.notifyDataSetChanged();
-                movimentacaoActivity.calcularRendaMensal(listaMovimentacao, view);
+                movimentacaoActivity.calcularRendaMensal(valorAnterior, listaMovimentacao, view);
             }
 
             @Override
@@ -399,7 +496,7 @@ public class MovimentacoesDAO {
 
     }
 
-    public void removerMovimentacao(Movimentacao movimentacao, MovimentacoesAdapter movimentacoesAdapter, int pos){
+    public void removerMovimentacao(Movimentacao movimentacao, MovimentacoesAdapter movimentacoesAdapter, int pos, Grupo grupo){
 
         MovimentacaoActivity movimentacaoActivity = new MovimentacaoActivity();
 
@@ -407,14 +504,64 @@ public class MovimentacoesDAO {
         //Trata campo data para agrupar em ano, mes e dia
         dataMov = DateCustom.firebaseFormatDate(movimentacao.getDataTarefa());
         //Chamada do método que retorna instancia do BD e nó de Movimentacao
-        DatabaseReference movimentacoes = getDatabaseMovimentacaoInstance();
+        DatabaseReference movimentacoes;
+        if (grupo == null ) movimentacoes = getDatabaseMovimentacaoInstance();
+        else movimentacoes = getDatabaseMovimentacaoInstanceGrupo(grupo);
         //Modificação do método utilizado para agrupar em datas agora
         DatabaseReference movimentacoesKey = movimentacoes.child(dataMov).child(movimentacao.getID());
 
         movimentacoesKey.removeValue();
         movimentacoesAdapter.notifyItemRemoved(pos);
 
-        movimentacaoActivity.notifyMovimentacaoRemoved();
+    }
+
+
+    public void recuperarMovFuturas(Movimentacao movimentacao, MovimentacoesAdapter movimentacoesAdapter, int pos, Grupo grupo){
+
+        String data[] = DateCustom.firebaseFormatDateBuild(movimentacao.getDataTarefa());
+        int parcelasRestantes = (movimentacao.getParcelaTotal() - (movimentacao.getParcelaAtual()-1));
+        int i;
+        //variaveis que armazenam os valores que aumentarão de acordo com as parcelas
+        int mes = Integer.parseInt(data[1]);
+        int ano = Integer.parseInt(data[2]);
+
+        for(i=0; i<=parcelasRestantes; i++) {
+            boolean a = false;
+            if (i == 0) a = true;
+
+            //variaveis que contem as datas em valores Strings
+            String mesStr = String.valueOf(mes);
+            if (mes < 10) mesStr = "0" + mes;
+
+            String anoStr = String.valueOf(ano);
+
+            DatabaseReference tarefasExclusao;
+            if (grupo == null) tarefasExclusao = getDatabaseMonthMovInstance(anoStr, mesStr).child(movimentacao.getID());
+            else tarefasExclusao = getDatabaseMonthMovInstanceGrupo(anoStr, mesStr, grupo).child(movimentacao.getID());
+
+            tarefasExclusao.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.exists()) {
+                        tarefasExclusao.removeValue();
+                    }else Log.i("Exclusão", "não encontrada");
+
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+
+            if (mes >= 12) {
+                ano++;
+                mes = 1;
+            } else mes++;
+
+        }
+
+        movimentacoesAdapter.notifyItemRemoved(pos);
 
     }
 
@@ -428,7 +575,11 @@ public class MovimentacoesDAO {
         return refenciaDb.child("grupos").child(grupo.getGrupoId()).child("Movimentacoes").child(year).child(month);
     }
 
+    //Pega instancia da movimentação de acordo com o ano/mes/dia
+    private DatabaseReference getDatabaseMonthMovInstanceGrupo(String year, String month, String id){
 
+        return refenciaDb.child("grupos").child(id).child("Movimentacoes").child(year).child(month);
+    }
 
 
     //GRUPOS

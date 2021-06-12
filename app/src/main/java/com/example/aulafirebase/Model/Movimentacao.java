@@ -1,16 +1,46 @@
 package com.example.aulafirebase.Model;
 
-public class Movimentacao {
+import java.io.Serializable;
+
+public class Movimentacao implements Serializable {
 
     private String descTarefa, dataTarefa, tipo, categoria, atribuicao;
-    private Double valor;
+    private Double valor, valorTotalParcelas;
     private int parcelaTotal, parcelaAtual;
     private String ID;
-    private String tipoFaturamento;
-    private Boolean ultimaContaRecorrente;
+    private String tipoFaturamento, nomeGrupo, idGrupoVinculo;
+    private Boolean ultimaContaRecorrente, aparecerFeed, inverso; //o booleano inverso representa que aparecerá como movimentação contrária a registrada no grupo quando esse valor for verdadeiro
 
-    public Boolean isUltimaContaRecorrente() {
-        return ultimaContaRecorrente;
+    public Boolean getInverso() {
+        return inverso;
+    }
+
+    public void setInverso(Boolean inverso) {
+        this.inverso = inverso;
+    }
+
+    public String getIdGrupoVinculo() {
+        return idGrupoVinculo;
+    }
+
+    public void setIdGrupoVinculo(String idGrupoVinculo) {
+        this.idGrupoVinculo = idGrupoVinculo;
+    }
+
+    public String getNomeGrupo() {
+        return nomeGrupo;
+    }
+
+    public void setNomeGrupo(String nomeGrupo) {
+        this.nomeGrupo = nomeGrupo;
+    }
+
+    public Boolean getAparecerFeed() {
+        return aparecerFeed;
+    }
+
+    public void setAparecerFeed(Boolean aparecerFeed) {
+        this.aparecerFeed = aparecerFeed;
     }
 
     public void setUltimaContaRecorrente(Boolean ultimaContaRecorrente) {

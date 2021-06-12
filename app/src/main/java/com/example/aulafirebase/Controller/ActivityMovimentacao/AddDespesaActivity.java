@@ -2,6 +2,7 @@ package com.example.aulafirebase.Controller.ActivityMovimentacao;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Dialog;
@@ -17,6 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -42,6 +44,7 @@ import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,9 +56,9 @@ public class AddDespesaActivity extends AppCompatActivity {
     //Botão para salvar despesa
     private Button btnSalvarDespesa;
     //Edit Text referente a campos
-    private TextInputEditText edDataDespesa, edDescDespesa;
+    private TextInputEditText edDataDespesa, edDescDespesa, edValorParcela;
     //EditText referente ao valor descrito
-    private TextInputLayout tilData;
+    private TextInputLayout tilData, tilValorParcela;
     private EditText edValorDespesa;
     //Spinner contendo categorias
     private Spinner spinnerCategoriaDespesa, spinnerAtribuido;
@@ -80,7 +83,7 @@ public class AddDespesaActivity extends AppCompatActivity {
     private String anoSel, mesSel;
     private String tipoFaturamento = "aVista";
 
-    private Boolean dataClicada = false;
+    private Boolean dataClicada = false, isAlteracao = false;
 
     private TextView txtMov, txtParcelaRadio;
 
@@ -89,6 +92,7 @@ public class AddDespesaActivity extends AppCompatActivity {
     private RadioButton radioRecorrente;
     private RadioButton radioAVista;
     private LinearLayout linearParcelas;
+    private CheckBox checkboxInversoGrupo;
 
     private Grupo grupoRecebido = null;
     private GrupoDAO grupoDAO = new GrupoDAO();
@@ -96,6 +100,7 @@ public class AddDespesaActivity extends AppCompatActivity {
     private ArrayAdapter<String> arrayAdapterAtribuido;
     private List<String> listEmailIntegrantes = new ArrayList<>();
     private String tipoMovimentacao;
+    private final DecimalFormat decimalFormat = new DecimalFormat("0.##");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,21 +123,26 @@ public class AddDespesaActivity extends AppCompatActivity {
         linearParcelas = findViewById(R.id.linearParcelasDesp);
         tilData = findViewById(R.id.tilData);
         txtParcelaRadio = findViewById(R.id.txtParcelas);
+        edValorParcela = findViewById(R.id.edValorParcela);
+        tilValorParcela = findViewById(R.id.txtinputValor);
+        checkboxInversoGrupo = findViewById(R.id.checkBoxInverso);
+
+        radiosConfig(); //Seta seleção de rádio
 
         bundleData = getIntent().getExtras();
-        if( (!bundleData.getString("ano").equals(null)) && (!bundleData.getString("mes").equals(null)) ) {
+        if ( bundleData.getString("ano") != null ) {
             anoSel = bundleData.getString("ano");
             mesSel = bundleData.getString("mes");
             String[] data = DateCustom.firebaseFormatDateBuild(DateCustom.dataAtual());
             edDataDespesa.setText( data[0] + "/" + mesSel + "/" + anoSel );
-        }else edDataDespesa.setText( DateCustom.dataAtual() ); //Preenche com a data atual
-
-        tipoMovimentacao = bundleData.getString("tipo");
-        Log.i("Tipo Mov", tipoMovimentacao);
+            tipoMovimentacao = bundleData.getString("tipo");
+        }else setarCampos();
 
         if (tipoMovimentacao.equals("r")) {
             tilData.setHint("Data de Faturamento");
             radioParcelas.setText("Parcelar Faturamento");
+            checkboxInversoGrupo.setText("Aparecer como despesa para o responsável");
+            checkboxInversoGrupo.setHint("Assinale este campo quando o responsável estiver transferindo o valor para o grupo");
 
             if (recuperarBundle()) categorias = new String[]{"Proventos do Grupo", "Comissão", "Bonificação", "Outros"};
             else categorias = new String[]{"Salário", "Comissão", "Bonificação", "Outros"};
@@ -140,6 +150,8 @@ public class AddDespesaActivity extends AppCompatActivity {
         }else {
             tilData.setHint("Data de Vencimento");
             if (recuperarBundle()) categorias = new String[]{"Moradia", "Contas", "Alimentação", "Outros"};
+            checkboxInversoGrupo.setText("Aparecer como receita para o responsável");
+            checkboxInversoGrupo.setHint("Assinale este campo quando o responsável estiver usufruindo do valor que tem como fonte o grupo");
         }
 
         //Adapter para utilizar o spinner
@@ -168,42 +180,6 @@ public class AddDespesaActivity extends AppCompatActivity {
                 return false;
             }
         });
-
-        radioAVista.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    linearParcelas.setVisibility(View.GONE);
-                    tipoFaturamento = "aVista";
-                }
-            }
-        });
-
-        radioParcelas.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    linearParcelas.setVisibility(View.VISIBLE);
-                    editInputDespParcela.setHint("N.º de parcelas");
-                    txtParcelaRadio.setText("Parcelas Mensais");
-                    tipoFaturamento = "parcelado";
-                }
-            }
-        });
-
-        radioRecorrente.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    linearParcelas.setVisibility(View.VISIBLE);
-                    editInputDespParcela.setHint("Duração da Recorrência");
-                    txtParcelaRadio.setText("Meses");
-                    tipoFaturamento = "recorrente";
-                }
-            }
-        });
-
-
 
         editHoraDespesa.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
@@ -244,8 +220,10 @@ public class AddDespesaActivity extends AppCompatActivity {
             if (recuperarBundle()) grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
             else grupoAtualizado = null;
 
-            salvarDespesa(grupoAtualizado);
+            if (isAlteracao) AlterarListaMov(recuperarEdicao(), grupoAtualizado);
+            else salvarDespesa(grupoAtualizado);
         });
+
 
     }
 
@@ -257,9 +235,11 @@ public class AddDespesaActivity extends AppCompatActivity {
             grupoAtualizado = grupoDAO.getGrupo(grupoRecebido);
             grupoAtualizado.setGrupoId(grupoRecebido.getGrupoId());
             recuperarUsuariosGrupo();
+            checkboxInversoGrupo.setVisibility(View.VISIBLE);
         }else {
             spinnerAtribuido.setVisibility(View.GONE);
             txtMov.setVisibility(View.GONE);
+            checkboxInversoGrupo.setVisibility(View.GONE);
         }
 
     }
@@ -283,20 +263,7 @@ public class AddDespesaActivity extends AppCompatActivity {
         //Se for true, salva despesa
         if (validarCampos()){
 
-            Double valor = Double.parseDouble(edValorDespesa.getText().toString());
-            //Setando valores de acordo com os campos
-            despesaSalva.setValor(valor);
-            despesaSalva.setDescTarefa(edDescDespesa.getText().toString());
-            despesaSalva.setDataTarefa(edDataDespesa.getText().toString() + " - " + editHoraDespesa.getText());
-            despesaSalva.setCategoria(spinnerCategoriaDespesa.getSelectedItem().toString());
-            despesaSalva.setTipoFaturamento(tipoFaturamento);
-            if (spinnerAtribuido.getSelectedItem() != null) despesaSalva.setAtribuicao(spinnerAtribuido.getSelectedItem().toString());
-            //Caso seja parcelado
-            if (radioParcelas.isChecked()){
-                despesaSalva.setParcelaTotal(Integer.parseInt(editInputDespParcela.getText().toString()));
-            }
-            //Caso despesa = 'r'; Caso Despesa = 'd'.
-            despesaSalva.setTipo(tipoMovimentacao);
+                setarValores(despesaSalva);
 
                 //Verifica conexão do celular
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -304,28 +271,18 @@ public class AddDespesaActivity extends AppCompatActivity {
 
                 //Salva a despesa desde que tenha internet
                 if (networkInfo != null && networkInfo.isConnectedOrConnecting()){ //Se parcelado, executa método próprio
-                  //  if (grupo == null) {
-                //        despesasDAO.salvarMovimentacao(despesaSalva, null);
-
                         switch (despesaSalva.getTipoFaturamento()){
                             case "parcelado":
+                            case "recorrente":
                                 parcelarDespesa(despesaSalva, grupo);
 
                                 break;
-                            case "recorrente":
-                                salvarMovRecorrente(despesaSalva, grupo);
-                                
-                                break;
-                            case "aVista":
+
+                                case "aVista":
                                 despesasDAO.salvarMovimentacao(despesaSalva, grupo);
                                 
                                 break;
                         }
-
-                    //}else if (grupo == null && despesaSalva.getTipoFaturamento().equals("parcelado")) parcelarDespesa(despesaSalva); //Se parcelado, executa método próprio
-                    /*    else if (grupo != null && !despesaSalva.getTipoFaturamento().equals("parcelado")){
-                        despesasDAO.salvarMovimentacao(despesaSalva, grupoAtualizado);
-                    }*/
 
                     Toast.makeText(this, "Despesa salva com sucesso.   :)", Toast.LENGTH_SHORT).show();
                     finish();
@@ -333,10 +290,91 @@ public class AddDespesaActivity extends AppCompatActivity {
         }else Toast.makeText(this, "Preencha todos os campos corretamente para poder continuar", Toast.LENGTH_SHORT).show();
     }
 
-    private void salvarMovRecorrente(Movimentacao movimentacaoSalva, Grupo grupo) {
+    private void setarValores(Movimentacao mov){
+        if (grupoAtualizado != null) {
+            mov.setIdGrupoVinculo(grupoAtualizado.getGrupoId());
+            mov.setNomeGrupo(grupoAtualizado.getNomeGrupo());
+            mov.setInverso(checkboxInversoGrupo.isChecked());
+        }
 
-        int parcelaTotal = movimentacaoSalva.getParcelaTotal();
-        String data[] = DateCustom.firebaseFormatDateBuild(movimentacaoSalva.getDataTarefa());
+        String formatValor = edValorDespesa.getText().toString().replaceAll(",",".");
+
+        Double valor = Double.parseDouble(formatValor);
+        //Setando valores de acordo com os campos
+        mov.setValor(valor);
+        mov.setDescTarefa(edDescDespesa.getText().toString());
+        mov.setDataTarefa(edDataDespesa.getText().toString() + " - " + editHoraDespesa.getText());
+        mov.setCategoria(spinnerCategoriaDespesa.getSelectedItem().toString());
+        mov.setTipoFaturamento(tipoFaturamento);
+        if (spinnerAtribuido.getSelectedItem() != null) mov.setAtribuicao(spinnerAtribuido.getSelectedItem().toString());
+        //Caso seja parcelado
+        if (radioParcelas.isChecked() || radioRecorrente.isChecked()){
+            mov.setParcelaTotal(Integer.parseInt(editInputDespParcela.getText().toString()));
+        }
+        //Caso despesa = 'r'; Caso Despesa = 'd'.
+        mov.setTipo(tipoMovimentacao);
+    }
+
+    private void setarCampos(){ //edicao??
+
+        isAlteracao = true;
+
+        Movimentacao movEdit = recuperarEdicao();
+//        tipoMovimentacao = recuperarEdicao().getTipo();
+        tipoMovimentacao = movEdit.getTipo();
+        tipoFaturamento = movEdit.getTipoFaturamento();
+
+        edValorDespesa.setText(decimalFormat.format(movEdit.getValor()));
+        edDescDespesa.setText(movEdit.getDescTarefa());
+        if (movEdit.getInverso() != null) checkboxInversoGrupo.setChecked(movEdit.getInverso());
+
+        String[] data;
+
+        data = DateCustom.firebaseFormatDateBuild(movEdit.getDataTarefa());
+
+        edDataDespesa.setText(data[0] + "/" + data[1] + "/" + data[2] );
+        if (movEdit.getAtribuicao() != null) listEmailIntegrantes.add(movEdit.getAtribuicao());
+
+        switch (tipoFaturamento){
+            case "parcelado":
+                radioParcelas.setChecked(true);
+                editInputDespParcela.setText(String.valueOf(movEdit.getParcelaTotal()));
+                break;
+            case "recorrente":
+                radioRecorrente.setChecked(true);
+                editInputDespParcela.setText(String.valueOf(movEdit.getParcelaTotal()));
+                break;
+            case "aVista":
+                radioAVista.setChecked(true);
+                break;
+        }
+
+        radioAVista.setEnabled(false);
+        radioRecorrente.setEnabled(false);
+        radioParcelas.setEnabled(false);
+        editInputDespParcela.setEnabled(false);
+        txtParcelaRadio.setEnabled(false);
+
+        btnSalvarDespesa.setText("Atualizar");
+
+    }
+
+    private void alteraMovAvista(Movimentacao mov, Grupo grupo){
+
+        setarValores(mov);
+
+        despesasDAO.atualizarMovimentacao(mov, grupo);
+
+    }
+
+    private void alterarMovRecorrente (Movimentacao mov, Grupo grupo){
+
+        setarValores(mov);
+
+
+        int parcelaTotal = mov.getParcelaTotal(), parcelaAtual = mov.getParcelaAtual();
+
+        String data[] = DateCustom.firebaseFormatDateBuild(mov.getDataTarefa());
         List <Movimentacao> movimentacaoParcelada = new ArrayList<>();
         List <String> datasMovs = new ArrayList<>();
 
@@ -344,8 +382,19 @@ public class AddDespesaActivity extends AppCompatActivity {
         int mes = Integer.parseInt(data[1]);
         int ano = Integer.parseInt(data[2]);
 
-        for (i = 0; i<parcelaTotal; i++){
-            Movimentacao movParcela = movimentacaoSalva;
+        for (i = parcelaAtual; i<=parcelaTotal; i++){
+            Movimentacao movParcela = mov;
+
+            String mesParcela = String.valueOf(mes);
+            String anoParcela = String.valueOf(ano);
+            if (mes < 10) mesParcela = "0" + mes;
+
+            datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
+            movParcela.setDataTarefa(datasMovs.get(i - parcelaAtual));
+            //movParcela.setParcelaAtual(i + 1);
+            //if (i == (mov.getParcelaTotal() - 1)) movParcela.setUltimaContaRecorrente(true);
+            movimentacaoParcelada.add(movParcela);
+
             if (mes < 12) mes++;
             else if (mes >= 12) {
                 mes = 1;
@@ -355,29 +404,65 @@ public class AddDespesaActivity extends AppCompatActivity {
                         mes + "/" + ano);
             }
 
-            String mesParcela = String.valueOf(mes);
-            String anoParcela = String.valueOf(ano);
-            if (mes < 10) mesParcela = "0" + mes;
-
-            datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
-            movParcela.setDataTarefa(datasMovs.get(i));
-            movParcela.setParcelaAtual(i + 1);
-            if (i == (movimentacaoSalva.getParcelaTotal() - 1)) movParcela.setUltimaContaRecorrente(true);
-            movimentacaoParcelada.add(movParcela);
-
-
-//            Log.i("Parcelado", "Antes de lançar - " + "Parcela: " + movimentacaoParcelada.get(i).getParcelaAtual() + ", Item: " + movimentacaoParcelada.get(i).getDescTarefa());
+            Log.i("Data Mov", movimentacaoParcelada.get(0).getDataTarefa());
 
         }
+        //Construtor para salvar listas de movimentacoes
+        despesasDAO.atualizarMovimentacao(movimentacaoParcelada, datasMovs, grupo);
 
-        despesasDAO.salvarMovimentacao(movimentacaoParcelada, datasMovs, grupo);
+    }
+
+    private void AlterarListaMov(Movimentacao mov, Grupo grupo){
+        AlertDialog.Builder alertDialogExcluir = new AlertDialog.Builder(this);
+
+        //Configurando AlertDialog
+        alertDialogExcluir.setTitle("Editar Movimentação");
+        alertDialogExcluir.setCancelable(false);
+
+        if (validarCampos()) {
+            if (!mov.getTipoFaturamento().equals("aVista")) {
+                alertDialogExcluir.setMessage("Como deseja efetuar a edição?\nEsta ação não poderá ser revertida.");
+                //Configurando botões
+                alertDialogExcluir.setPositiveButton("Editar apenas esta parcela", (dialog, which) -> {
+                    alteraMovAvista(mov, grupo);
+                    finish();
+                });
+
+                alertDialogExcluir.setNegativeButton("Editar todas as parcelas (não afetará parceladas antigas)", (dialog, which) -> {
+                    alterarMovRecorrente(mov, grupo);
+                    finish();
+                });
+
+                alertDialogExcluir.setNeutralButton("Cancelar", (dialog, which) -> {
+
+                });
+            } else {
+                alertDialogExcluir.setMessage("Deseja alterar a movimentação?\nEsta ação não poderá ser revertida.");
+
+                alertDialogExcluir.setPositiveButton("Salvar", (dialog, which) -> {
+                    alteraMovAvista(mov, grupo);
+                    finish();
+                });
+
+                alertDialogExcluir.setNegativeButton("Cancelar", (dialog, which) -> {
+
+
+                });
+
+            }
+
+            alertDialogExcluir.show();
+        }
     }
 
     private void parcelarDespesa(Movimentacao despesa, Grupo grupo){
 
         int parcelaTotal = despesa.getParcelaTotal();
-        Double valorDividido = (despesa.getValor() / parcelaTotal);
-        despesa.setValor(valorDividido);
+           if (despesa.getTipoFaturamento().equals("parcelado")) {
+            Double valorDividido = (despesa.getValor() / parcelaTotal);
+            despesa.setValor(valorDividido);
+        }
+
         String data[] = DateCustom.firebaseFormatDateBuild(despesa.getDataTarefa());
         List <Movimentacao> movimentacaoParcelada = new ArrayList<>();
         List <String> datasMovs = new ArrayList<>();
@@ -388,6 +473,17 @@ public class AddDespesaActivity extends AppCompatActivity {
 
         for (i = 0; i<parcelaTotal; i++){
             Movimentacao movParcela = despesa;
+
+            String mesParcela = String.valueOf(mes);
+            String anoParcela = String.valueOf(ano);
+            if (mes < 10) mesParcela = "0" + mes;
+
+            datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
+            movParcela.setDataTarefa(datasMovs.get(i));
+            movParcela.setParcelaAtual(i + 1);
+            if (i == (despesa.getParcelaTotal() - 1)) movParcela.setUltimaContaRecorrente(true);
+            movimentacaoParcelada.add(movParcela);
+
             if (mes < 12) mes++;
             else if (mes >= 12) {
                 mes = 1;
@@ -397,22 +493,11 @@ public class AddDespesaActivity extends AppCompatActivity {
                         mes + "/" + ano);
             }
 
-            String mesParcela = String.valueOf(mes);
-            String anoParcela = String.valueOf(ano);
-            if (mes < 10) mesParcela = "0" + mes;
-
-            datasMovs.add(data[0] + "/" + mesParcela + "/" + anoParcela + " - " + editHoraDespesa.getText());
-            movParcela.setDataTarefa(datasMovs.get(i));
-            movParcela.setParcelaAtual(i + 1);
-            movimentacaoParcelada.add(movParcela);
-
-
-            Log.i("Parcelado", "Antes de lançar - " + "Parcela: " + movimentacaoParcelada.get(i).getParcelaAtual() + ", Item: " + movimentacaoParcelada.get(i).getDescTarefa());
+            Log.i("Data Mov", movimentacaoParcelada.get(0).getDataTarefa());
 
         }
         //Construtor para salvar listas de movimentacoes
         despesasDAO.salvarMovimentacao(movimentacaoParcelada, datasMovs, grupo);
-
 
     }
 
@@ -515,6 +600,13 @@ public class AddDespesaActivity extends AppCompatActivity {
         return resumoRecuperado;
     }
 
+    private Movimentacao recuperarEdicao() { //atualizar
+        Intent intent = getIntent();
+        return (Movimentacao) intent.getSerializableExtra("movEdit");
+
+    }
+
+
     private void dialogCalendario(){
         dataClicada = true;
         Dialog dialogoCalendario = new Dialog(this);
@@ -572,6 +664,8 @@ public class AddDespesaActivity extends AppCompatActivity {
 
         txtMov.setVisibility(View.VISIBLE);
 
+        listEmailIntegrantes.add("Em Aberto");
+
         listEmailIntegrantes.add(FirebaseConfig.getFirebaseAuth().getCurrentUser().getEmail());
 
         arrayAdapterAtribuido = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listEmailIntegrantes);
@@ -581,5 +675,81 @@ public class AddDespesaActivity extends AppCompatActivity {
         grupoDAO.retornarIntegrantes(grupoAtualizado, listEmailIntegrantes, arrayAdapterAtribuido);
 
 
+    }
+
+    private void calcularValorParcelas(Boolean isEdicao, Boolean isParcelado){
+        View.OnFocusChangeListener branco = new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+
+            }
+        };
+        View.OnFocusChangeListener onFocusChangeParcela = new View.OnFocusChangeListener(){
+            @Override
+            public void onFocusChange(View v, boolean event) {
+                if (!edValorDespesa.getText().toString().isEmpty() && !editInputDespParcela.getText().toString().isEmpty()) {
+//                    edValorParcela.setText("R$ " + decimalFormat.format(edValorDespesa.getText().toString()));
+                    if (!isEdicao) {
+                        if (!editInputDespParcela.getText().toString().isEmpty() && !editInputDespParcela.getText().toString().equals("0")){
+                            tilValorParcela.setHint("Valor por Parcela");
+                            Double valorParcela = Double.parseDouble(edValorDespesa.getText().toString()) / Integer.parseInt(editInputDespParcela.getText().toString());
+//                            edValorParcela.setText("R$ " + valorParcela);
+                            edValorParcela.setText("R$ " + decimalFormat.format(valorParcela));
+                            tilValorParcela.setVisibility(View.VISIBLE);
+                        }
+                    }
+                } else tilValorParcela.setVisibility(View.GONE);
+            }
+        };
+        if (isParcelado) {
+            edValorDespesa.setOnFocusChangeListener(onFocusChangeParcela);
+            editInputDespParcela.setOnFocusChangeListener(onFocusChangeParcela);
+        }
+        else {
+            edValorDespesa.setOnFocusChangeListener(branco);
+            editInputDespParcela.setOnFocusChangeListener(branco);
+        }
+    }
+
+    private void radiosConfig(){
+        tipoFaturamento = "aVista";
+        radioAVista.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    tilValorParcela.setVisibility(View.GONE);
+                    linearParcelas.setVisibility(View.GONE);
+                    tipoFaturamento = "aVista";
+                    calcularValorParcelas(false, false);
+                }
+            }
+        });
+
+        radioParcelas.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    if ( bundleData.getString("ano") != null ) calcularValorParcelas(false, true);
+                    linearParcelas.setVisibility(View.VISIBLE);
+                    editInputDespParcela.setHint("N.º de parcelas");
+                    txtParcelaRadio.setText("Parcelas Mensais");
+                    tipoFaturamento = "parcelado";
+                }
+            }
+        });
+
+        radioRecorrente.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    calcularValorParcelas(false, false);
+                    tilValorParcela.setVisibility(View.GONE);
+                    linearParcelas.setVisibility(View.VISIBLE);
+                    editInputDespParcela.setHint("Duração da Recorrência");
+                    txtParcelaRadio.setText("Meses");
+                    tipoFaturamento = "recorrente";
+                }
+            }
+        });
     }
 }

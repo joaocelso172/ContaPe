@@ -67,7 +67,7 @@ public class AddIntegranteGrupo extends AppCompatActivity {
         grupoDAO.salvarIntegranteGrupo(grupo, grupoUsuario, checkEhAdmin.isSelected());
         usuarioGrupoDAO.gravarGrupoUsuarios(grupoUsuario, usuarioGrupo);
 
-
+        finish();
     }
 
 
