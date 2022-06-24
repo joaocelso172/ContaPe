@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context=".Controller.ActivityMovimentacao.MovimentacaoActivity"
+    tools:context=".controller.transaction_activity.TransactionActivity"
     tools:showIn="@layout/activity_tarefa">
 
 

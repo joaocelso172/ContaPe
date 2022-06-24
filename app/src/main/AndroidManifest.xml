@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.aulafirebase">
+    package="com.devinstance.contape">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACESS_WIFI_STATE" />
@@ -13,22 +13,22 @@
         android:roundIcon="@drawable/primeirologo"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Controller.ActivityGrupos.AddIntegranteGrupo"></activity>
-        <activity android:name=".Controller.ActivityGrupos.ListarGruposActivity" />
+        <activity android:name="com.devinstance.contape.controller.group_activity.AddGroupMember"></activity>
+        <activity android:name="com.devinstance.contape.controller.group_activity.ListGroupActivity" />
         <activity
-            android:name=".Controller.ActivityGrupos.GrupoActivity"
+            android:name="com.devinstance.contape.controller.group_activity.GroupActivity"
             android:label="@string/title_activity_grupo"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".EnviarConviteActivity" />
-        <activity android:name=".Controller.ActivityGrupos.AddGrupoActivity" />
-        <activity android:name=".Controller.ActivityMovimentacao.AddGanhoActivity" />
-        <activity android:name=".Controller.ActivityMovimentacao.AddDespesaActivity" />
+        <activity android:name="com.devinstance.contape.SendInviteActivity" />
+        <activity android:name="com.devinstance.contape.controller.group_activity.AddGroupActivity" />
+        <activity android:name="com.devinstance.contape.controller.transaction_activity.AddProfitActivity" />
+        <activity android:name="com.devinstance.contape.controller.transaction_activity.AddExpenseActivity" />
         <activity
-            android:name=".Controller.ActivityMovimentacao.MovimentacaoActivity"
+            android:name="com.devinstance.contape.controller.transaction_activity.TransactionActivity"
             android:label="@string/title_activity_tarefa"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name=".Controller.ActivityLogin.LoginActivity"
+            android:name="com.devinstance.contape.controller.login_activity.LoginActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

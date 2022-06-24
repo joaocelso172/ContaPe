@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    tools:context=".Controller.ActivityGrupos.ListarGruposActivity">
+    tools:context=".controller.group_activity.ListGroupActivity">
 
 
     <androidx.recyclerview.widget.RecyclerView
